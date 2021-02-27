@@ -1,0 +1,31 @@
+{
+    "GameObjects": [{
+            "Name": "Camera",
+            "Pos": [5.000030040740967, 2.0149967670440676],
+            "Rot": [2.0, 2.0],
+            "Textures": "Texture not found",
+            "Color": [1.0, 1.0, 1.0, 1.0],
+            "uvScale": [1.0, 1.0],
+            "uvOffset": [0.0, 0.0],
+            "Shader": "Basic",
+            "Scale:": [1.0, 1.0]
+        }, {
+            "Name": "Player",
+            "Pos": [5.000030040740967, 2.0149967670440676],
+            "Rot": [0.0, 0.0],
+            "Textures": "Test",
+            "Color": [0.0, 1.0, 0.0, 1.0],
+            "uvScale": [1.0, 1.0],
+            "uvOffset": [0.0, 0.0],
+            "Shader": "Basic"
+        }, {
+            "Name": "BGThing",
+            "Pos": [5.0, 1.0],
+            "Rot": [0.0, 0.0],
+            "Textures": "Test",
+            "Color": [0.0, 1.0, 0.0, 1.0],
+            "uvScale": [1.0, 1.0],
+            "uvOffset": [0.0, 0.0],
+            "Shader": "Basic"
+        }]
+}
