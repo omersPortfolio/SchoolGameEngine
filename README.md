@@ -1,4 +1,4 @@
-# School Game Engine
+# School Game Engine 
 
 The Game Engine that we, as a class, have been building in C++ with group tasks along with individual ones.
 
