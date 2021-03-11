@@ -34,15 +34,18 @@ void GameScene::Init()
         pPlayer = new Player(this, pGame->GetPlayerController(), "Player", vec2(5, 5), 0, 1,
                              pGame->GetMaterial("Orange"));
         pPlayer->AddComponent(new fw::MeshComponent(pGame->GetMesh("Player")));
-        pPlayer->CreatePhysicsBodyBox(fw::BodyType::DynamicBody, 1, 1, 1);
+#if FW_USING_LUA
+        pPlayer->AddComponent(new fw::LuaScriptComponent(GetGameCore()->GetEventManager()));
+#endif
+        pPlayer->AddComponent(new fw::CollisionComponent(vec3(0,0,0), fw::ShapeType::Box, fw::BodyType::DynamicBody, vec3(1, 1), 1));
         m_Objects.push_back(pPlayer);
     }
-
+    
     {
         fw::GameObject* pObject = new fw::GameObject(this, "BGThing", vec2(5, 1), 0, 1,
                                                      pGame->GetMaterial("Water"));
         pObject->AddComponent(new fw::MeshComponent(pGame->GetMesh("Cube")));
-        pObject->CreatePhysicsBodyBox(fw::BodyType::StaticBody, 5, 1);
+        pObject->AddComponent(new fw::CollisionComponent(vec3(0,0,0), fw::ShapeType::Box, fw::BodyType::StaticBody, vec3(5, 1)));
         m_Objects.push_back(pObject);
     }
 
@@ -50,6 +53,10 @@ void GameScene::Init()
     m_pCamera->SetObjectWeAreFollowing(pPlayer);
 
     m_Particles = new fw::ParticleEmitter(pGame->GetMaterial("Water"));
+
+#if FW_USING_LUA
+    m_pLuaGameState = new fw::LuaGameState();
+#endif
 }
 
 void GameScene::StartFrame(float deltaTime)
@@ -89,7 +96,7 @@ void GameScene::Update(float deltaTime)
     if (ImGui::Button("Load"))
     {
         Load("Data/SaveFiles/test.scene");
-    }
+    }    
 }
 
 void GameScene::Draw()
@@ -178,25 +185,57 @@ void GameScene::Load(const char* filename)
             itemUVOffset.y = (float)gameObject["uvOffset"].GetArray()[1].GetDouble();
         }
 
+        fw::GameObject* pGameObject = nullptr;
+
         if (itemName == "Player")
         {
-            Player* pPlayer = new Player(this, pGame->GetPlayerController(), itemName,
+            pGameObject = new Player(this, pGame->GetPlayerController(), itemName,
                 itemPosition, itemRotation, itemScale, pGame->GetMaterial("Orange"));
-            pPlayer->AddComponent(new fw::MeshComponent(pGame->GetMesh("Player")));
-
-            pPlayer->CreatePhysicsBodyBox(fw::BodyType::DynamicBody, 1, 1, 1);
-            m_Objects.push_back(pPlayer);
         }
         else
         {
-            fw::GameObject* pGameObject = new fw::GameObject(this, itemName,
-                itemPosition, itemRotation, itemScale, pGame->GetMaterial("Orange"));
+            pGameObject = new fw::GameObject(this, itemName,
+                itemPosition, itemRotation, itemScale, pGame->GetMaterial("Water"));
+        }
 
-            pGameObject->AddComponent(new fw::MeshComponent(pGame->GetMesh("Player")));
-            //pGameObject->AddComponent(new fw::AABBComponent());
+        m_Objects.push_back(pGameObject);
 
-            m_Objects.push_back(pGameObject);
-            pGameObject->CreatePhysicsBodyBox(fw::BodyType::StaticBody, itemPosition.x, itemPosition.y);
+        if (gameObject.HasMember("GameObjectComponents"))
+        {
+            for (rapidjson::Value& component : gameObject["GameObjectComponents"].GetArray())
+            {
+                std::string componentName = component["Name"].GetString();
+
+                if (componentName == "MeshComponent")
+                {
+                    fw::MeshComponent* mesh = new fw::MeshComponent(pGame->GetMesh("Cube"));
+                    if (itemName == "Player")
+                    {
+                        mesh = new fw::MeshComponent(pGame->GetMesh("Player"));
+                    }
+                    pGameObject->AddComponent(mesh);
+                }
+
+                if (componentName == "CollisionComponent")
+                {
+                    fw::CollisionComponent* collision = new fw::CollisionComponent();
+                    collision->Load(component);
+                    pGameObject->AddComponent(collision);
+                }
+            }
+        }
+        else
+        {
+            
+            fw::MeshComponent* mesh = new fw::MeshComponent(pGame->GetMesh("Cube"));
+            fw::CollisionComponent* collision = new fw::CollisionComponent(vec3(0, 0, 0), fw::ShapeType::Box, fw::BodyType::StaticBody, vec3(5, 1));
+            if (itemName == "Player")
+            {
+                mesh = new fw::MeshComponent(pGame->GetMesh("Player"));
+                collision = new fw::CollisionComponent(vec3(0, 0, 0), fw::ShapeType::Box, fw::BodyType::DynamicBody, vec3(1, 1), 1);
+            }
+            pGameObject->AddComponent(mesh);
+            pGameObject->AddComponent(collision);
         }
     }
 }
@@ -234,7 +273,7 @@ void GameScene::DrawNewObjectButtons()
             pGame->GetMaterial("Orange"));
 
         pObject->AddComponent(new fw::MeshComponent(pGame->GetMesh("Player")));
-        pObject->CreatePhysicsBodyBox(fw::BodyType::StaticBody, 4, 2);
+        pObject->AddComponent(new fw::CollisionComponent(vec3(0,0,0), fw::ShapeType::Box, fw::BodyType::StaticBody, vec3(4, 2)));
 
         // Checks if the creation was successful.
         if (pObject)
@@ -265,7 +304,7 @@ void GameScene::DrawNewObjectButtons()
             pGame->GetMaterial("Orange"));
 
         pPlayer->AddComponent(new fw::MeshComponent(pGame->GetMesh("Player")));
-        pPlayer->CreatePhysicsBodyBox(fw::BodyType::DynamicBody, 1, 1, 1);
+        pPlayer->AddComponent(new fw::CollisionComponent(vec3(0,0,0), fw::ShapeType::Box, fw::BodyType::DynamicBody, vec3(1, 1), 1));
 
         //Checks if the creation was successful
         if (pPlayer)

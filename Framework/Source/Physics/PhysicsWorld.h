@@ -13,6 +13,16 @@ enum BodyType
     DynamicBody
 };
 
+static const char* BodyTypeStrings[] = { "StaticBody", "DynamicBody" };
+
+enum ShapeType
+{
+    Circle,
+    Box
+};
+
+static const char* ShapeTypeStrings[] = { "Circle", "Box" };
+
 class PhysicsWorld
 {
 public:

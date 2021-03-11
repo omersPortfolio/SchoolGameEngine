@@ -1,31 +1,49 @@
 {
     "GameObjects": [{
             "Name": "Camera",
-            "Pos": [5.000030040740967, 2.0149967670440676],
-            "Rot": [2.0, 2.0],
-            "Textures": "Texture not found",
+            "Pos": [5.000029563903809, 2.0149967670440676, 0.0],
+            "Rot": [2.0, 2.0, 0.0],
+            "Scale": [1.0, 1.0, 1.0],
+            "Shader": "Basic"
+        }, {
+            "Name": "Player",
+            "Pos": [5.000029563903809, 2.0149967670440676, 0.0],
+            "Rot": [0.0, 0.0, 0.0],
+            "Scale": [1.0, 1.0, 1.0],
+            "Textures": "Orange",
+            "Color": [1.0, 1.0, 1.0, 1.0],
+            "uvScale": [0.0625, 0.125],
+            "uvOffset": [0.76171875, 0.748046875],
+            "Shader": "Basic",
+            "GameObjectComponents": [{
+                    "Name": "MeshComponent"
+                }, {
+                    "Name": "CollisionComponent",
+                    "Offset": [0.0, 0.0, 0.0],
+                    "ShapeType": 1,
+                    "BodyType": 1,
+                    "Density": 1.0,
+                    "Dimensions": [1.0, 1.0]
+                }]
+        }, {
+            "Name": "BGThing",
+            "Pos": [5.0, 1.0, 0.0],
+            "Rot": [0.0, 0.0, 0.0],
+            "Scale": [1.0, 1.0, 1.0],
+            "Textures": "Water",
             "Color": [1.0, 1.0, 1.0, 1.0],
             "uvScale": [1.0, 1.0],
             "uvOffset": [0.0, 0.0],
             "Shader": "Basic",
-            "Scale:": [1.0, 1.0]
-        }, {
-            "Name": "Player",
-            "Pos": [5.000030040740967, 2.0149967670440676],
-            "Rot": [0.0, 0.0],
-            "Textures": "Test",
-            "Color": [0.0, 1.0, 0.0, 1.0],
-            "uvScale": [1.0, 1.0],
-            "uvOffset": [0.0, 0.0],
-            "Shader": "Basic"
-        }, {
-            "Name": "BGThing",
-            "Pos": [5.0, 1.0],
-            "Rot": [0.0, 0.0],
-            "Textures": "Test",
-            "Color": [0.0, 1.0, 0.0, 1.0],
-            "uvScale": [1.0, 1.0],
-            "uvOffset": [0.0, 0.0],
-            "Shader": "Basic"
+            "GameObjectComponents": [{
+                    "Name": "MeshComponent"
+                }, {
+                    "Name": "CollisionComponent",
+                    "Offset": [0.0, 0.0, 0.0],
+                    "ShapeType": 1,
+                    "BodyType": 0,
+                    "Density": 0.0,
+                    "Dimensions": [5.0, 1.0]
+                }]
         }]
 }

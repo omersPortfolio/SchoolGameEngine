@@ -17,12 +17,18 @@ Camera::Camera(Scene* pScene, vec3 pos, vec3 rot, vec2 projScale)
 {
     m_Scale = vec3(1, 1, 1);
 
-    m_pScene->GetGameCore()->GetEventManager()->RegisterEventListener(this, InputEvent::GetStaticEventType());
+    if( m_pScene != nullptr)
+    {
+        m_pScene->GetGameCore()->GetEventManager()->RegisterEventListener(this, InputEvent::GetStaticEventType());
+    }
 }
 
 Camera::~Camera()
 {
-    m_pScene->GetGameCore()->GetEventManager()->UnregisterEventListener(this, InputEvent::GetStaticEventType());
+    if (m_pScene != nullptr)
+    {
+        m_pScene->GetGameCore()->GetEventManager()->UnregisterEventListener(this, InputEvent::GetStaticEventType());
+    }   
 }
 
 void Camera::Update(float deltaTime)
@@ -133,28 +139,34 @@ void Camera::OnEvent(Event* pEvent)
 vec2 Camera::GetWorldSpaceMousePosition()
 {
     fw::FWCore* pFramework = m_pScene->GetGameCore()->GetFramework();
+   
+    ImVec2 windowSize;
+    ImVec2 windowPos;
+    m_pScene->GetGameCore()->GetGameRenderWindowInfo(&windowPos,&windowSize);
 
-    // Get Window Width and Height for Mouse Positioning.
-    int windowWidth = pFramework->GetWindowWidth();
-    int windowHeight = pFramework->GetWindowHeight();
+    float windowWidth = windowSize.x;
+    float windowHeight = windowSize.y;
+
+    float windowPosX = windowPos.x;
+    float windowPosY = windowPos.y;
 
     HWND hwnd = pFramework->GetHWND();
     POINT cursorPosition;
     GetCursorPos(&cursorPosition);
     ScreenToClient(hwnd, &cursorPosition);
-
+    
     // Screen space mouse position.
-    float screenX = (float)cursorPosition.x;
-    float screenY = (float)windowHeight - cursorPosition.y;
+    float screenX = cursorPosition.x - windowPosX;
+    float screenY = windowPosY - cursorPosition.y + windowHeight;
 
     // Clip space mouse position.
     float clipX = (screenX / windowWidth) * 2 - 1;
     float clipY = (screenY / windowHeight) * 2 - 1;
-
+        
     // View space mouse position.
     float viewX = clipX * m_ProjectionScale.x;
     float viewY = clipY * m_ProjectionScale.y;
-
+    
     // World space mouse position.
     float worldX = viewX + m_Position.x;
     float worldY = viewY + m_Position.y;

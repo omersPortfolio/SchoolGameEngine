@@ -10,3 +10,7 @@
 [submodule "Framework/Libraries/box2d"]
 	path = Framework/Libraries/box2d
 	url = https://github.com/erincatto/box2d.git
+
+[submodule "Framework/Libraries/LuaBridge"]
+	path = Framework/Libraries/LuaBridge
+	url = https://github.com/vinniefalco/LuaBridge.git

@@ -1,4 +1,9 @@
 -----------------------------------------------------
+-- Config
+-----------------------------------------------------
+PremakeConfig_UseLua = false
+
+-----------------------------------------------------
 -- Workspace
 -----------------------------------------------------
 workspace "Workspace"
@@ -23,6 +28,7 @@ project "Game"
 	files {
 		"Game/Source/**.cpp",
 		"Game/Source/**.h",
+		"Game/Source/**.lua",
 		"Game/Data/**.vert",
 		"Game/Data/**.frag",
 		"Game/Data/**.scene",
@@ -35,6 +41,8 @@ project "Game"
 
 	includedirs {
 		"Game/Source",
+		"Framework/Libraries",
+		"Framework/Libraries/LuaBridge/Source",
 	}
 
 	links {
@@ -64,17 +72,28 @@ project "Framework"
 		"Framework/Libraries/box2d/include/**.h",
 		"Framework/Libraries/box2d/src/**.cpp",
 		"Framework/Libraries/box2d/src/**.h",
+		"Framework/Libraries/Lua/src/**.c",
+		"Framework/Libraries/Lua/src/**.h",
+		"Framework/Libraries/LuaBridge/**.h",
+
 		".editorconfig",
 	}
 
 	includedirs {
 		"Framework/Source",
+		"Framework/Libraries",
 		"Framework/Libraries/box2d/include",
 		"Framework/Libraries/box2d/src",
+		"Framework/Libraries/LuaBridge/Source",
 	}
 
 	pchheader "FrameworkPCH.h"
 	pchsource "Framework/Source/Core/FWCore.cpp"
+
+	filter { "files:Framework/Libraries/Lua/src/lua.c"
+			.. " or Framework/Libraries/Lua/src/luac.c"
+		   }
+		   flags	"ExcludeFromBuild"
 
 	filter "files:Framework/Libraries/imgui/*.cpp"
 		flags { "NoPCH" }
@@ -82,4 +101,18 @@ project "Framework"
 	filter "files:Framework/Libraries/box2d/src/**.cpp"
 		flags { "NoPCH" }
 
-	
+	filter "files:Framework/Libraries/Lua/**.c"
+		flags { "NoPCH" }
+
+	filter "files:Framework/Libraries/LuaBridge/**.h"
+		flags { "NoPCH" }
+
+if PremakeConfig_UseLua == true then
+	filter {}
+		defines			"FW_USE_LUA"
+else
+	filter {}
+		defines			"FW_USE_LUA=0"
+	filter{ "files:Framework/Libraries/Lua/**" }
+		flags			"ExcludeFromBuild"
+end

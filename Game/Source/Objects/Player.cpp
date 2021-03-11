@@ -8,29 +8,27 @@ Player::Player(fw::Scene* pScene, PlayerController* pPlayerController, std::stri
     : fw::GameObject(pScene, name, pos, rot, scale, pMaterial)
     , m_pPlayerController(pPlayerController)
 {
-    className = "Player";
-
     m_pScene->GetGameCore()->GetEventManager()->RegisterEventListener(this, fw::PhysicsCollisionEvent::GetStaticEventType());
 }
 
 Player::Player(Player& original)
     : fw::GameObject(original)
 {
-    className = "Player";
-
     m_pScene->GetGameCore()->GetEventManager()->RegisterEventListener(this, fw::PhysicsCollisionEvent::GetStaticEventType());
     m_pPlayerController = original.m_pPlayerController;
 }
 
 Player::~Player()
 {
+
 }
 
 void Player::Update(float deltaTime)
 {
     GameObject::Update(deltaTime);
 
-    if (m_pPhysicsBody == nullptr)
+    fw::Component* pComponent = GetFirstComponentOfType(fw::CollisionComponent::GetStaticType());
+    if (pComponent == nullptr)
     {
         float speed = 2.0f;
 
@@ -62,21 +60,24 @@ void Player::Update(float deltaTime)
     }
     else
     {
+        fw::CollisionComponent* pCollider = static_cast<fw::CollisionComponent*>( pComponent );
+        fw::PhysicsBody* pBody = pCollider->GetPhysicsBody();
+
         if (m_pPlayerController->IsHeld(PlayerController::Mask::Right))
         {
-            m_pPhysicsBody->ApplyForceToCenter(vec3(1, 0, 0) * m_Speed);
+            pBody->ApplyForceToCenter(vec3(1, 0, 0) * m_Speed);
         }
 
         if (m_pPlayerController->IsHeld(PlayerController::Mask::Left))
         {
-            m_pPhysicsBody->ApplyForceToCenter(vec3(-1, 0, 0) * m_Speed);
+            pBody->ApplyForceToCenter(vec3(-1, 0, 0) * m_Speed);
         }
 
         if (m_pPlayerController->WasNewlyPressed(PlayerController::Mask::Up))
         {
             if (m_AllowedToJump)
             {
-                m_pPhysicsBody->ApplyImpulseToCenter(vec3(0, 1, 0) * m_Speed);
+                pBody->ApplyImpulseToCenter(vec3(0, 1, 0) * m_Speed);
                 m_AllowedToJump = false;
             }
         }

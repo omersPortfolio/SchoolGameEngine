@@ -10,12 +10,14 @@
 #include "Scene/Scene.h"
 #include "Components/MeshComponent.h"
 #include "Components/AABBComponent.h"
+#include "Components/CollisionComponent.h"
 #include "Scene/Scene.h"
 #include "Components/ComponentManager.h"
 #include "Material.h"
 #include "Physics/PhysicsBody.h"
 #include "ResourceManager.h"
 #include "Utility/JSONHelpers.h"
+#include "UI/ResourcesPanel.h"
 
 namespace fw {
 
@@ -49,32 +51,31 @@ GameObject::GameObject(GameObject& orgnlGO)
             AABBComponent* cComponent = static_cast<AABBComponent*>(orgnlGO.m_Components[i]);
             //this->AddComponent(new AABBComponent(cComponent->GetAABB()));
         }
+        if (orgnlGO.m_Components[i]->GetType() == CollisionComponent::GetStaticType())
+        {
+            CollisionComponent* cComponent = static_cast<CollisionComponent*>(orgnlGO.m_Components[i]);
+            this->AddComponent(new CollisionComponent(cComponent));
+        }
     }
-
-    // Not proper duplication,can be easily implemented once Physicsbody is made a component.
-    CreatePhysicsBodyBox(fw::BodyType::StaticBody, 1, 1);
 }
 
 GameObject::~GameObject()
 {
-    m_pScene->GetGameCore()->GetEventManager()->UnregisterEventListenerCompletely(this);
-
-    for (Component* pComp : m_Components)
+    if (m_pScene != nullptr)
     {
-        m_pScene->GetComponentManager()->RemoveComponent(pComp);
-        delete pComp;
-    }
+        m_pScene->GetGameCore()->GetEventManager()->UnregisterEventListenerCompletely(this);
 
-    delete m_pPhysicsBody;
+        for (Component* pComp : m_Components)
+        {
+            m_pScene->GetComponentManager()->RemoveComponent(pComp);
+            delete pComp;
+        }
+    }
 }
 
 void GameObject::Update(float deltaTime)
 {
-    if (m_pPhysicsBody)
-    {
-        m_Position = m_pPhysicsBody->GetPosition().XY();
-        //m_Rotation = m_pPhysicsBody->GetRotation().z;
-    }
+    m_pScene->GetComponentManager()->Update(deltaTime);
 }
 
 void GameObject::Draw(Camera* pCamera)
@@ -93,57 +94,69 @@ void GameObject::Save(WriterType& writer)
     JSONSaveVec3(writer, "Rot", m_Rotation);
     JSONSaveVec3(writer, "Scale", m_Scale);
 
-    writer.Key("Textures");
-    writer.String(pResources->FindTextureName(m_pMaterial->GetTexture()).c_str());
+    if (m_pMaterial != nullptr)
+    {
+        writer.Key("Textures");
+        writer.String(pResources->FindTextureName(m_pMaterial->GetTexture()).c_str());
 
-    writer.Key("Color");
-    writer.StartArray();
-    writer.Double(m_pMaterial->GetColor().r);
-    writer.Double(m_pMaterial->GetColor().g);
-    writer.Double(m_pMaterial->GetColor().b);
-    writer.Double(m_pMaterial->GetColor().a);
-    writer.EndArray();
+        writer.Key("Color");
+        writer.StartArray();
+        writer.Double(m_pMaterial->GetColor().r);
+        writer.Double(m_pMaterial->GetColor().g);
+        writer.Double(m_pMaterial->GetColor().b);
+        writer.Double(m_pMaterial->GetColor().a);
+        writer.EndArray();
 
-    JSONSaveVec2(writer, "uvScale", m_pMaterial->GetUVScale());
-    JSONSaveVec2(writer, "uvOffset", m_pMaterial->GetUVOffset());
+        JSONSaveVec2(writer, "uvScale", m_pMaterial->GetUVScale());
+        JSONSaveVec2(writer, "uvOffset", m_pMaterial->GetUVOffset());
+    }
 
     writer.Key("Shader");
     writer.String("Basic");
+
+    if (!m_Components.empty())
+    {
+        writer.Key("GameObjectComponents");
+        writer.StartArray();
+
+        for (Component* component : m_Components)
+        {
+            writer.StartObject();
+            component->Save(writer);
+            writer.EndObject();
+        }
+
+        writer.EndArray();
+    }
 }
 
 void GameObject::AddComponent(Component* pComponent)
 {
     pComponent->SetGameObject(this);
+    pComponent->Init();
     m_pScene->GetComponentManager()->AddComponent(pComponent);
     m_Components.push_back(pComponent);
 }
 
-void GameObject::CreatePhysicsBodyCircle(BodyType bodyType, float radius, float density)
+Component* GameObject::GetFirstComponentOfType(const char* type)
 {
-    m_pPhysicsBody = m_pScene->GetWorld()->CreateBody(m_Position, bodyType, true);
-    m_pPhysicsBody->CreateCircle(radius);
-    m_pPhysicsBody->SetDensity(density);
-}
-
-void GameObject::CreatePhysicsBodyBox(BodyType bodyType, float boxWidth, float boxHeight, float density)
-{
-    m_pPhysicsBody = m_pScene->GetWorld()->CreateBody(m_Position, bodyType, true);
-    m_pPhysicsBody->CreateBox(boxWidth, boxHeight);
-    m_pPhysicsBody->SetDensity(density);
-}
-
-void GameObject::SetPositionPhysicsBody()
-{
-    if (m_pPhysicsBody)
+    for( Component* pComponent : m_Components )
     {
-        m_pPhysicsBody->SetPosition(m_Position);
-        //m_pPhysicsBody->SetRotation(m_Rotation);
+        if( pComponent->GetType() == type )
+        {
+            return pComponent;
+        }
     }
+
+    return nullptr;
 }
 
 void GameObject::ImGuiInspector()
 {
+    ImGui::PushID(m_Name.c_str());
+
     // Display name and allow for renaming.
+    ImGui::BeginGroup();
     {
         const int maxNameLen = 32;
         char text[maxNameLen];
@@ -158,12 +171,13 @@ void GameObject::ImGuiInspector()
 
     if (ImGui::DragFloat2("Position", &m_Position.x, 0.05f))
     {
-        if (m_pPhysicsBody)
-        {
-            SetPositionPhysicsBody();
-        }
+        //for (Component* pComponent : m_Components)
+        //{
+        //    pComponent->SetPosition(m_Position);
+        //}
     };
-
+    ImGui::EndGroup();
+    
     if (m_pMaterial)
     {
         Color tempColor = m_pMaterial->GetColor();
@@ -171,7 +185,41 @@ void GameObject::ImGuiInspector()
         {
             m_pMaterial->SetColor(tempColor);
         }
+
+        if (ImGui::TreeNodeEx("Material Properties", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            std::string* assetName = ResourcesPanel::DropNodeImageM(m_pMaterial, "Material", "Drop Material", "Materials");
+            if (assetName)
+            {
+                SetMaterial( m_pScene->GetGameCore()->GetResourceManager()->GetMaterial(*assetName) );
+            }
+
+            //if (ResourcesPanel::DropNodeImage(m_pMaterial->GetTexture(), "Texture", "Drop Texture", "Textures"))
+            //    m_pMaterial->SetTexture(ResourcesPanel::SetTextureNode());
+
+            //if (ResourcesPanel::DropNode("Shader", "Drop Shader", "Shaders"))
+            //    m_pMaterial->SetShader(ResourcesPanel::SetShaderNode());
+
+            ImGui::TreePop();
+        }
     }
+
+    for (Component* pComponent : m_Components)
+    {
+        pComponent->ImGuiInspector();
+    }
+
+    ImGui::PopID();
 }
+
+#if FW_USING_LUA
+void GameObject::LuaRegister(lua_State* luastate)
+{
+    luabridge::getGlobalNamespace(luastate)
+        .beginClass<GameObject>("GameObject")
+        .addProperty("position", &GameObject::m_Position)
+        .endClass();
+}
+#endif
 
 } // namespace fw

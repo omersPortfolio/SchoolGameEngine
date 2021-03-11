@@ -8,13 +8,17 @@
 #include "Objects/GameObject.h"
 #include "Objects/Camera.h"
 #include "Components/ComponentManager.h"
+#include "Components/ComponentRegistry.h"
 #include "EventSystem/Event.h"
 #include "Log.h"
 #include "Components/AABBComponent.h"
+#include "Components/MeshComponent.h"
 #include "Objects/AABB.h"
 #include "Physics/PhysicsWorld.h"
 #include "Physics/PhysicsWorld2D.h"
 #include "Utility/JSONHelpers.h"
+#include "Lua/LuaGameState.h"
+#include "Lua/LuaScript.h"
 
 namespace fw {
 
@@ -23,9 +27,9 @@ Scene::Scene(GameCore* pGameCore)
     m_pGameCore = pGameCore;
 
     m_pComponentManager = new ComponentManager();
+    m_pComponentRegistry = new ComponentRegistry();
 
     m_pGameCore->GetEventManager()->RegisterEventListener(this, RemoveFromGameEvent::GetStaticEventType());
-    //CLEAR_LOG;
 }
 
 Scene::~Scene()
@@ -40,6 +44,11 @@ Scene::~Scene()
     delete m_pWorld;
 
     delete m_pComponentManager;
+    delete m_pComponentRegistry;
+
+#if FW_USING_LUA
+    delete m_pLuaGameState;
+#endif
 
     m_pGameCore->GetEventManager()->UnregisterEventListenerCompletely(this);
 }
@@ -85,7 +94,6 @@ void Scene::Update(float deltaTime)
     }
 
     GetComponentManager()->Update(deltaTime);
-    //Log::Update();
 
     if (m_pCamera)
     {
@@ -204,21 +212,9 @@ void Scene::DrawObjectList()
 
                     if (ImGui::Button("Duplicate"))
                     {
-                        if (strcmp(pObject->GetType(), "GameObject") == 0)
-                        {
-                            GameObject* newObj = new GameObject(*pObject);
+                        GameObject* newObj = new GameObject(*pObject);
 
-                            m_Objects.push_back(newObj);
-                        }
-
-                        /*if (strcmp(pObject->GetType(), "PlayerClass") == 0)
-                        {
-
-                            Player* playerObj = static_cast<Player*>(pObject);
-                            Player* newObj = new Player(*playerObj);
-
-                            m_Objects.push_back(newObj);
-                        }*/
+                        m_Objects.push_back(newObj);
                     }
 
                     ImGui::Separator();
@@ -230,6 +226,15 @@ void Scene::DrawObjectList()
                         m_ImGuiSelectedObject = nullptr;
 
                         LOG(INFO, "%s successfully deleted from Scene", pObject->GetName().c_str());
+                    }
+
+                    ImGui::Separator();
+
+                    // List of Components to Add
+                    // UI for adding components to game objects
+                    if (ImGui::CollapsingHeader("Add Components"))
+                    {
+                        m_pComponentRegistry->AddInterfaceToCreateComponents( pObject );
                     }
 
                     ImGui::EndPopup();
@@ -320,7 +325,7 @@ void Scene::DrawImGuiInspector()
 {
     if (m_IsObjectInspectorOn == true)
     {
-        ImGui::Begin("Inspector",&m_IsObjectInspectorOn);
+        ImGui::Begin("Inspector", &m_IsObjectInspectorOn);
 
         if (m_ImGuiSelectedObject != nullptr)
         {

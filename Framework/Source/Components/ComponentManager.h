@@ -16,7 +16,11 @@ public:
 
     void Draw(Camera* pCamera);
     void Update(float deltaTime);
+    void ImGuiInspector();
 
+#if FW_USING_LUA
+    void UpdateLuaScriptComponents(float deltaTime);
+#endif
     void AddComponent(Component* pComponent);
     void RemoveComponent(Component* pComponent);
 

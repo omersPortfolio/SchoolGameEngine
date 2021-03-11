@@ -2,6 +2,7 @@
 
 #include "EventSystem/EventListener.h"
 #include "Utility/JSONHelpers.h"
+#include "Math/Vector.h"
 
 namespace fw {
 
@@ -20,6 +21,11 @@ public:
 
     GameObject* GetGameObject() { return m_pGameObject; }
     void SetGameObject(GameObject* pGameObject) { m_pGameObject = pGameObject; }
+
+    virtual void Init() {};
+    virtual void Update(float deltaTime) { };
+
+    virtual void ImGuiInspector() {};
 
 protected:
     GameObject* m_pGameObject = nullptr;

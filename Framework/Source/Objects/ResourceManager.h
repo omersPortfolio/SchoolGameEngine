@@ -11,6 +11,8 @@ class Material;
 
 class ResourceManager
 {
+    friend class ResourcesPanel;
+
 public:
     ResourceManager();
     ~ResourceManager();

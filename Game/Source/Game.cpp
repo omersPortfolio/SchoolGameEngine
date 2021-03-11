@@ -1,8 +1,6 @@
 #include "GamePCH.h"
 
 #include "Game.h"
-
-//#include "../../Framework/Libraries/imgui/imgui_internal.h"
 #include "Objects/Player.h"
 #include "Objects/PlayerController.h"
 #include "Objects/Shapes.h"
@@ -29,11 +27,15 @@ Game::~Game()
 
     delete m_pResourceManager;
 
+    delete m_pResourcePanel;
+
     delete m_pEventManager;
 
     delete m_pImGuiManager;
 
     delete m_pTextureManager;
+
+    delete m_pTransformGizmo2D;
 
     delete m_Log;
 }
@@ -60,7 +62,7 @@ void Game::Init()
     m_pEventManager->RegisterEventListener(m_pImGuiManager, fw::InputEvent::GetStaticEventType());
 
     m_pResourceManager = new fw::ResourceManager();
-
+    
     //Enable docking
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
@@ -92,13 +94,21 @@ void Game::Init()
     // Create some Materials.
     m_pResourceManager->AddMaterial("Orange", new fw::Material(m_pResourceManager->GetShader("Basic"), m_pResourceManager->GetTexture("Orange"), fw::Color::White(), 1, 0));
     m_pResourceManager->AddMaterial("Water", new fw::Material(m_pResourceManager->GetShader("Basic"), m_pResourceManager->GetTexture("Water"), fw::Color::White(), 1, 0));
-
+    m_pResourceManager->AddMaterial("Green", new fw::Material(m_pResourceManager->GetShader("Basic"), m_pResourceManager->GetTexture("Green"), fw::Color::White(), 1, 0));
     // Load our scene.
     m_pScene = new GameScene(this);
     m_pScene->Init();
 
+    m_pResourcePanel = new fw::ResourcesPanel(m_pResourceManager, m_pTextureManager,"Resource Panel", m_pScene);
+    //Add Tabs to the Resource Panel
+    m_pResourcePanel->AddResource("Materials",  fw::ResourceType::Materials,true,  ImVec4(0.3f, 0.6f, 0.4f, 1.0f));
+    m_pResourcePanel->AddResource("Textures",  fw::ResourceType::Textures,true,  ImVec4(0.7f, 0.4f, 1.0f, 1.0f));
+    m_pResourcePanel->AddResource("Shaders",   fw::ResourceType::Shaders,true,  ImVec4(0.9f, 0.7f, 0.5f, 1.0f));
+    m_pResourcePanel->AddResource("Meshes",    fw::ResourceType::Meshes,true, ImVec4(0.9f, 0.2f, 0.4f, 1.0f));
+
     ImGui::LoadIniSettingsFromDisk("LayoutDefault.ini");
 
+    m_pTransformGizmo2D = new fw::TransformGizmo2D(this);
     LOG(INFO, "Game Initialized...");
 }
 
@@ -123,14 +133,20 @@ void Game::OnEvent(fw::Event* pEvent)
 void Game::Update(float deltaTime)
 {
     m_pScene->Update(deltaTime);
+    m_pTransformGizmo2D->Update(m_pScene);
 
     Editor_SetupDocking();
     Editor_MainMenu();
-
+    
     // Displaying Texture Manager window
     if (m_pTextureManager->GetOnOffState())
     {
         m_pTextureManager->Update(m_pScene);
+    }
+
+    if (m_pResourcePanel->GetOnOffState())
+    {
+        m_pResourcePanel->Update(m_pScene);
     }
 
     // Draws the Log window if Log window is on
@@ -160,6 +176,7 @@ void Game::Draw()
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, m_pFBO->GetRequestedWidth(), m_pFBO->GetRequestedHeight());
+    m_pTransformGizmo2D->Draw();
     m_pScene->Draw();
     m_pFBO->Unbind();
 
@@ -169,17 +186,21 @@ void Game::Draw()
 
     {
         ImGui::Begin("Game");
-        ImTextureID tex_id = (void*)(intptr_t)m_pFBO->GetColorTextureHandle();
-
-        float scale = 1 / 2.0f;
-
-        ImVec2 size = ImVec2(m_pFramework->GetWindowWidth() * scale, m_pFramework->GetWindowHeight() * scale);
-        ImVec2 uvTopLeft(0, m_pFBO->GetHeightRatio());
-        ImVec2 uvBottomRight(m_pFBO->GetWidthRatio(), 0);
-        ImGui::Image(tex_id, size, uvTopLeft, uvBottomRight);
+        {
+            ImGui::BeginChild("Render");
+            GameRenderWindowPos = ImGui::GetWindowPos();
+            GameRenderwindowSize = ImGui::GetWindowSize();
+            ImTextureID tex_id = (void*)(intptr_t)m_pFBO->GetColorTextureHandle();        
+            ImVec2 size = ImVec2(GameRenderwindowSize.x, GameRenderwindowSize.y);
+        
+            ImVec2 uvTopLeft(0, m_pFBO->GetHeightRatio());
+            ImVec2 uvBottomRight(m_pFBO->GetWidthRatio(), 0);
+            ImGui::Image(tex_id, size, uvTopLeft, uvBottomRight);
+            ImGui::EndChild();
+        }
         ImGui::End();
     }
-
+    
     m_pScene->DrawObjectList();
     m_pScene->DrawImGuiInspector();
     m_pScene->DrawImguiDemoWindow();
@@ -230,11 +251,12 @@ void Game::Editor_MainMenu()
     if (ImGui::BeginMenu("View"))
     {
         if (ImGui::MenuItem("Log")) { m_LogOpen = !m_LogOpen; }
+        if (ImGui::MenuItem(m_pResourcePanel->GetPanelName())) { m_pResourcePanel->ToggleOnOff(); }
         if (ImGui::MenuItem("Texture Manager")) { m_pTextureManager->ToggleOnOff(); }
         if (ImGui::MenuItem("Object List")) { m_pScene->ToggleObjectList(); }
         if (ImGui::MenuItem("Object Inspector")) { m_pScene->ToggleObjectDetails(); }
         if (ImGui::MenuItem("Imgui Helper")) { m_pScene->ToggleImguiDemo(); }
-
+        
         ImGui::EndMenu();
     }
 

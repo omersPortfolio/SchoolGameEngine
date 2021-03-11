@@ -420,19 +420,19 @@ void Mesh::Draw(Camera* pCamera, vec3 pos, vec3 rot, vec3 scale, ShaderProgram* 
     // Set this IBO to be the currently active one.
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
 
-    // Get the attribute variable’s location from the shader.
-    GLint loc = glGetAttribLocation(pShader->GetProgram(), "a_Position");
-    if (loc != -1)
+    // Get the attribute variable's location from the shader.
+    GLint locPosition = glGetAttribLocation(pShader->GetProgram(), "a_Position");
+    if (locPosition != -1)
     {
-        glEnableVertexAttribArray(loc);
-        glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 20, (void*)0);
+        glEnableVertexAttribArray(locPosition);
+        glVertexAttribPointer(locPosition, 3, GL_FLOAT, GL_FALSE, 20, (void*)0);
     }
 
-    loc = glGetAttribLocation(pShader->GetProgram(), "a_UVCoord");
-    if (loc != -1)
+    GLint locUVCoord = glGetAttribLocation(pShader->GetProgram(), "a_UVCoord");
+    if (locUVCoord != -1)
     {
-        glEnableVertexAttribArray(loc);
-        glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, 20, (void*)12);
+        glEnableVertexAttribArray(locUVCoord);
+        glVertexAttribPointer(locUVCoord, 2, GL_FLOAT, GL_FALSE, 20, (void*)12);
     }
 
     // Setup our uniforms.
@@ -469,7 +469,10 @@ void Mesh::Draw(Camera* pCamera, vec3 pos, vec3 rot, vec3 scale, ShaderProgram* 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, pTexture->GetHandle());
             SetUniform1i(pShader, "u_Texture", 0);
+            SetUniform1i(pShader, "u_HasTexture",1);
         }
+        else
+            SetUniform1i(pShader, "u_HasTexture",0);
     }
 
     // Draw the primitive.
@@ -480,6 +483,15 @@ void Mesh::Draw(Camera* pCamera, vec3 pos, vec3 rot, vec3 scale, ShaderProgram* 
     else
     {
         glDrawElements(m_PrimitiveType, m_NumIndices, GL_UNSIGNED_INT, (void*)0);
+    }
+
+    if( locPosition != -1 )
+    {
+        glDisableVertexAttribArray( locPosition );
+    }
+    if( locUVCoord != -1 )
+    {
+        glDisableVertexAttribArray( locUVCoord );
     }
 }
 

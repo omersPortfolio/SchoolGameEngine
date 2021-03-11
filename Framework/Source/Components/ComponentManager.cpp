@@ -1,10 +1,14 @@
 #include "FrameworkPCH.h"
 #include "ComponentManager.h"
 #include "MeshComponent.h"
+#include "CollisionComponent.h"
 #include "AABBComponent.h"
 #include "Objects/GameObject.h"
 #include "Objects/Mesh.h"
 #include "Objects/AABB.h"
+#include "LuaScriptComponent.h"
+#include "Scene/Scene.h"
+#include "Lua/LuaGameState.h"
 
 namespace fw {
 
@@ -28,9 +32,30 @@ void ComponentManager::Update(float deltaTime)
     for (int i = 0; i < list.size(); i++)
     {
         AABBComponent* pAABBComponent = static_cast<AABBComponent*>(list[i]);
+ 
+    }
 
-        //GameObject* pGO = pAABBComponent->GetGameObject();
-        //pAABBComponent->GetAABB().Set(pGO->GetPosition(), vec3(1, 1, 1));
+#if FW_USING_LUA
+    UpdateLuaScriptComponents(deltaTime);
+#endif
+
+    std::vector<Component*>& collisionComponentsList = m_Components[CollisionComponent::GetStaticType()];
+    for (int i = 0; i < collisionComponentsList.size(); i++)
+    {
+        CollisionComponent* pCollisionComponent = static_cast<CollisionComponent*>(collisionComponentsList[i]);
+
+        pCollisionComponent->Update(deltaTime);
+    }
+}
+
+void ComponentManager::ImGuiInspector()
+{
+    std::vector<Component*>& collisionComponentsList = m_Components[CollisionComponent::GetStaticType()];
+    for (int i = 0; i < collisionComponentsList.size(); i++)
+    {
+        CollisionComponent* pCollisionComponent = static_cast<CollisionComponent*>(collisionComponentsList[i]);
+
+        pCollisionComponent->ImGuiInspector();
     }
 }
 
@@ -63,9 +88,12 @@ void ComponentManager::DrawMeshComponents(Camera* pCamera)
         MeshComponent* pMeshComponent = static_cast<MeshComponent*>(list[i]);
 
         GameObject* pGO = pMeshComponent->GetGameObject();
-        pMeshComponent->GetMesh()->Draw(pCamera,
-                                        pGO->GetPosition(), pGO->GetRotation(), pGO->GetScale(),
-                                        pGO->GetMaterial());
+        if( pMeshComponent->GetMesh() )
+        {
+            pMeshComponent->GetMesh()->Draw(pCamera,
+                                            pGO->GetPosition(), pGO->GetRotation(), pGO->GetScale(),
+                                            pGO->GetMaterial());
+        }
     }
 }
 
@@ -77,10 +105,27 @@ void ComponentManager::DrawDebugAABBComponents(Camera* pCamera)
         AABBComponent* pAABBComponent = static_cast<AABBComponent*>(list[i]);
 
         GameObject* pGO = pAABBComponent->GetGameObject();
-        pAABBComponent->GetMesh()->Draw(pCamera,
-                                        pGO->GetPosition(), pGO->GetRotation(), pGO->GetScale(),
-                                        pGO->GetMaterial());
+        if( pAABBComponent->GetMesh() )
+        {
+            pAABBComponent->GetMesh()->Draw(pCamera,
+                                            pGO->GetPosition(), pGO->GetRotation(), pGO->GetScale(),
+                                            pGO->GetMaterial());
+        }
     }
 }
+
+#if FW_USING_LUA
+void ComponentManager::UpdateLuaScriptComponents(float deltaTime)
+{
+    std::vector<Component*>& list = m_Components[LuaScriptComponent::GetStaticType()];
+    for (int i = 0; i < list.size(); i++)
+    {
+        LuaScriptComponent* pLuaComponent = static_cast<LuaScriptComponent*>(list[i]);
+
+        GameObject* pGO = pLuaComponent->GetGameObject();
+        pGO->GetScene()->GetLuaState()->UpdateGameObjectFromLua(pGO, deltaTime, "Tick");
+    }
+}
+#endif
 
 } // namespace fw

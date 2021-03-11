@@ -18,6 +18,7 @@ class Texture;
 class Component;
 class Material;
 class PhysicsBody;
+class ResourcesPanel;
 
 class GameObject : public EventListener
 {
@@ -34,14 +35,12 @@ public:
     virtual void ImGuiInspector();
 
     void AddComponent(Component* pComponent);
-    void CreatePhysicsBodyCircle(BodyType bodyType, float radius, float density = 0.0f);
-    void CreatePhysicsBodyBox(BodyType bodyType, float boxWidth, float boxHeight, float density = 0.0f);
 
     // Getters.
     std::string GetName() { return m_Name; }
     Scene* GetScene() { return m_pScene; }
 
-    virtual const char* GetType() { return className.c_str(); }
+    Component* GetFirstComponentOfType(const char* type);
 
     vec3 GetPosition() { return m_Position; }
     vec3 GetRotation() { return m_Rotation; }
@@ -50,22 +49,25 @@ public:
 
     Material* GetMaterial() { return m_pMaterial; }
 
+#if FW_USING_LUA
+    static void LuaRegister(lua_State* luastate);
+#endif
+
     // Setters.
     void SetName(std::string name) { m_Name = name; }
-    void SetPosition(vec2 pos) { m_Position = pos; SetPositionPhysicsBody(); }
-    void SetPosition(float x, float y) { m_Position.x = x; m_Position.y = y; SetPositionPhysicsBody(); }
-    void SetRotation(vec2 rot) { m_Rotation = rot; /*SetRotationPhysicsBody*/ }
-    void SetRotation(float x, float y) { m_Rotation.x = x; m_Rotation.y = y; /*SetRotationPhysicsBody*/ }
-    //When using set position automatically move the physics body with the object
-    void SetPositionPhysicsBody();
 
+    void SetMaterial(Material* pMaterial) { m_pMaterial = pMaterial; }
+
+    void SetScale(vec3 scale) { m_Scale = scale;}
+    void SetPosition(vec3 pos) { m_Position = pos; }
+    void SetRotation(vec3 rot) { m_Rotation = rot; }
+    
 protected:
     Scene* m_pScene = nullptr;
 
     std::vector<Component*> m_Components;
 
     std::string m_Name;
-    std::string className= "GameObject";//Used to identify object's tip(actual) class ,can be used when and if scripts are added as components or for duplication
 
     vec3 m_Position;
     vec3 m_Rotation;

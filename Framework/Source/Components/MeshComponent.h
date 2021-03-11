@@ -14,6 +14,10 @@ public:
 
     static const char* GetStaticType() { return "MeshComponent"; }
     virtual const char* GetType() override { return GetStaticType(); }
+    static Component* Create() { return new MeshComponent(); }
+
+    virtual void Save(WriterType& writer) override;
+    virtual void Load(rapidjson::Value& component) override;
 
     // Getters.
     Mesh* GetMesh() { return m_pMesh; }

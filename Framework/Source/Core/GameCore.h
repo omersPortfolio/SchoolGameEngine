@@ -19,6 +19,8 @@ public:
     virtual void OnEvent(Event* pEvent) = 0;
     virtual void Update(float deltaTime) = 0;
     virtual void Draw() = 0;
+    
+    virtual void GetGameRenderWindowInfo(ImVec2* WindowPos , ImVec2* WindowSize) = 0;
 
     FWCore* GetFramework() { return m_pFramework; }
     EventManager* GetEventManager() { return m_pEventManager; }

@@ -15,6 +15,7 @@ public:
 
     static const char* GetStaticType() { return "AABBComponent"; }
     virtual const char* GetType() override { return GetStaticType(); }
+    static Component* Create() { return new AABBComponent(); }
 
     // Getters.
     AABB& GetAABB() { return m_AABB; }

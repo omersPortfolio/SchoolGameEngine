@@ -28,6 +28,27 @@
 #include "GL/glext.h"
 #include "GL/wglext.h"
 
+#if FW_USE_LUA
+#define FW_USING_LUA 1
+#else
+#define FW_USING_LUA 0
+#endif
+
+// Lua.
+#if FW_USING_LUA
+extern "C"
+{
+#include "../Libraries/Lua/src/lua.h"
+#include "../Libraries/Lua/src/lualib.h"
+#include "../Libraries/Lua/src/lauxlib.h"
+}
+#pragma warning( push )
+#pragma warning( disable : 4640 )
+#include "LuaBridge/LuaBridge.h"
+#pragma warning( pop )
+#endif //FW_USING_LUA
+
+
 #include "GL/GLExtensions.h"
 #include "GL/WGLExtensions.h"
 

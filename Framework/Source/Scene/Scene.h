@@ -5,13 +5,14 @@
 class PlayerController;
 
 namespace fw {
-
+class ComponentRegistry;
 class ComponentManager;
 class GameCore;
 class GameObject;
 class Event;
 class Camera;
 class PhysicsWorld;
+class LuaGameState;
 
 class Scene : public EventListener
 {
@@ -33,12 +34,15 @@ public:
 
     // Getters.
     inline const char* GetSceneName() { return m_SceneName; }
+    GameObject* GetSelectedGameObject() {return m_ImGuiSelectedObject;}
+    Camera* GetSceneCamera() {return m_pCamera;}
     GameCore* GetGameCore() { return m_pGameCore; }
     ComponentManager* GetComponentManager() { return m_pComponentManager; }
     std::string GetName() { return m_Name; }
     GameObject* GetGameObject(std::string type);
     std::vector<GameObject*>* GetAllGameObjects() { return &m_Objects; }
     PhysicsWorld* GetWorld() { return m_pWorld; }
+    LuaGameState* GetLuaState() { return m_pLuaGameState; }
 
     bool GetIsObjectListOn() { return m_IsObjectListOn; }
 
@@ -60,6 +64,7 @@ protected:
     Camera* m_pCamera = nullptr;
 
     ComponentManager* m_pComponentManager = nullptr;
+    ComponentRegistry* m_pComponentRegistry = nullptr;
 
     std::string m_Name = "Scene";
 
@@ -67,6 +72,8 @@ protected:
     PlayerController* m_pPlayerController = nullptr;
 
     PhysicsWorld* m_pWorld = nullptr;
+
+    LuaGameState* m_pLuaGameState = nullptr;
 
     inline static bool m_IsObjectListOn = true;        // bootleg code to fix windows 
     inline static bool m_IsObjectSelectorOn = true;    // reappearing when switching scenes

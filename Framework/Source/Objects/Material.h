@@ -23,6 +23,7 @@ public:
 
     void SetTexture(Texture* pTexture) { m_pTexture = pTexture; }
     void SetColor(Color color) { m_Color = color; }
+    void SetShader(ShaderProgram* pShader) { m_pShaderProgram = pShader; } 
     void SetUVScale(vec2 uvScale) { m_UVScale = uvScale; }
     void SetUVOffset(vec2 uvOffset) { m_UVOffset = uvOffset; }
 
