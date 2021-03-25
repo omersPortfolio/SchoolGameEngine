@@ -17,6 +17,9 @@ public:
     virtual const char* GetType() override { return GetStaticType(); }
     static Component* Create() { return new AABBComponent(); }
 
+    virtual void Save(WriterType& writer) override;
+    virtual void Load(rapidjson::Value& component) override;
+
     // Getters.
     AABB& GetAABB() { return m_AABB; }
     Mesh* GetMesh() { return m_pMesh; }

@@ -23,7 +23,7 @@ project "Game"
 	kind		"WindowedApp"
 	location	"build/Game"
 	debugdir	"Game"
-	cppdialect "C++17"									-- Changing language standard to support std::filesystem
+	cppdialect	"C++17"									-- Changing language standard to support std::filesystem
 
 	files {
 		"Game/Source/**.cpp",
@@ -48,8 +48,8 @@ project "Game"
 	links {
 		"Framework",
 		"opengl32",
+		"xinput",
 	}
-
 
 	pchheader "GamePCH.h"
 	pchsource "Game/Source/WinMain.cpp"
@@ -65,17 +65,18 @@ project "Framework"
 	files {
 		"Framework/Source/**.cpp",
 		"Framework/Source/**.h",
-		"Framework/Libraries/imgui/*.cpp",
-		"Framework/Libraries/imgui/*.h",
-		"Framework/Libraries/stb/stb_image.h",
-		"Framework/Libraries/rapidjson/include/rapidjson/**.h",
 		"Framework/Libraries/box2d/include/**.h",
 		"Framework/Libraries/box2d/src/**.cpp",
 		"Framework/Libraries/box2d/src/**.h",
+		"Framework/Libraries/imgui/*.cpp",
+		"Framework/Libraries/imgui/*.h",
+		"Framework/Libraries/ImFileDialog/ImFileDialog.cpp",
+		"Framework/Libraries/ImFileDialog/ImFileDialog.h",
 		"Framework/Libraries/Lua/src/**.c",
 		"Framework/Libraries/Lua/src/**.h",
 		"Framework/Libraries/LuaBridge/**.h",
-
+		"Framework/Libraries/rapidjson/include/rapidjson/**.h",
+		"Framework/Libraries/stb/stb_image.h",
 		".editorconfig",
 	}
 
@@ -84,22 +85,27 @@ project "Framework"
 		"Framework/Libraries",
 		"Framework/Libraries/box2d/include",
 		"Framework/Libraries/box2d/src",
+		"Framework/Libraries/ImFileDialog",
 		"Framework/Libraries/LuaBridge/Source",
+		"Framework/Libraries/stb",
 	}
 
 	pchheader "FrameworkPCH.h"
 	pchsource "Framework/Source/Core/FWCore.cpp"
 
-	filter { "files:Framework/Libraries/Lua/src/lua.c"
-			.. " or Framework/Libraries/Lua/src/luac.c"
-		   }
-		   flags	"ExcludeFromBuild"
+	filter "files:Framework/Libraries/box2d/src/**.cpp"
+		flags { "NoPCH" }
 
 	filter "files:Framework/Libraries/imgui/*.cpp"
 		flags { "NoPCH" }
 
-	filter "files:Framework/Libraries/box2d/src/**.cpp"
+	filter "files:Framework/Libraries/ImFileDialog/*.cpp"
 		flags { "NoPCH" }
+
+	filter { "files:Framework/Libraries/Lua/src/lua.c"
+			.. " or Framework/Libraries/Lua/src/luac.c"
+		   }
+		   flags	"ExcludeFromBuild"
 
 	filter "files:Framework/Libraries/Lua/**.c"
 		flags { "NoPCH" }

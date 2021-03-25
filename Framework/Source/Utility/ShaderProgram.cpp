@@ -59,10 +59,12 @@ void ShaderProgram::Cleanup()
 
 void ShaderProgram::CompileShader(GLuint& shaderHandle, const char* shaderString)
 {
-    const char* strings[] = { shaderString };
-    glShaderSource(shaderHandle, 1, strings, nullptr);
+    const char* functionsString = LoadCompleteFile("Data/Shaders/Functions.glsl", nullptr);
+    const char* strings[] = {functionsString, shaderString};
+    glShaderSource(shaderHandle, 2, strings, nullptr);
 
     glCompileShader(shaderHandle);
+    delete[] functionsString;
 
     //GLenum errorcode = glGetError();
 

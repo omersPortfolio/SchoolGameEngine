@@ -75,10 +75,42 @@ void ResourceManager::AddMaterial(const char* name, Material* pMaterial)
     m_pMaterials[name] = pMaterial;
 }
 
+void ResourceManager::AddMaterial(const char* name, ShaderProgram* pShaderProgram, Color pColor)
+{
+    Material* temp = new Material(pShaderProgram, pColor);
+    AddMaterial(name, temp);
+}
+
 void ResourceManager::AddMaterial(const char* name, ShaderProgram* pShaderProgram, Texture* pTexture, Color pColor, vec2 m_UVScale, vec2 pUVOffset)
 {
     Material* temp = new Material(pShaderProgram, pTexture, pColor, m_UVScale, pUVOffset);
     AddMaterial(name, temp);
+}
+
+std::string ResourceManager::FindMeshName(Mesh* pMesh)
+{
+    for (auto& it = m_pMeshes.begin(); it != m_pMeshes.end(); it++)
+    {
+        if (it->second == pMesh)
+        {
+            return it->first;
+        }
+    }
+
+    return "Mesh not found";
+}
+
+std::string ResourceManager::FindShaderName(ShaderProgram* pShader)
+{
+    for (auto& it = m_pShaders.begin(); it != m_pShaders.end(); it++)
+    {
+        if (it->second == pShader)
+        {
+            return it->first;
+        }
+    }
+
+    return "Shader not found";
 }
 
 std::string ResourceManager::FindTextureName(Texture* pTexture)
@@ -92,6 +124,19 @@ std::string ResourceManager::FindTextureName(Texture* pTexture)
     }
 
     return "Texture not found";
+}
+
+std::string ResourceManager::FindMaterialName(Material* pMaterial)
+{
+    for (auto& it = m_pMaterials.begin(); it != m_pMaterials.end(); it++)
+    {
+        if (it->second == pMaterial)
+        {
+            return it->first;
+        }
+    }
+
+    return "Material not found";
 }
 
 } // namespace fw

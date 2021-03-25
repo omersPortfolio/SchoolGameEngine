@@ -91,6 +91,16 @@ vec3 PhysicsBody2D::GetPosition()
     return vec3(m_pBody->GetPosition().x, m_pBody->GetPosition().y);
 }
 
+vec3 PhysicsBody2D::GetRotation()
+{
+    return vec3(0, 0, -m_pBody->GetAngle() * 180.0f/PI);
+}
+
+float PhysicsBody2D::GetMass()
+{
+    return m_pBody->GetMass();
+}
+
 void PhysicsBody2D::ApplyForceToCenter(vec3 force)
 {
     m_pBody->ApplyForceToCenter( b2Vec2(force.x, force.y), true );

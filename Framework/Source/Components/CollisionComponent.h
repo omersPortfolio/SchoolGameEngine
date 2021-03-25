@@ -19,14 +19,14 @@ public:
 
     static const char* GetStaticType() { return "CollisionComponent"; }
     virtual const char* GetType() override { return GetStaticType(); }
+    static Component* Create() { return new CollisionComponent(); }
 
     virtual void Init() override;
     virtual void Update(float deltaTime) override;
 
     virtual void Save(WriterType& writer) override;
     virtual void Load(rapidjson::Value& component) override;
-
-    virtual void ImGuiInspector() override;
+    virtual void AddToInspector() override;
 
     void CreatePhysicsBody();
 
@@ -53,11 +53,11 @@ public:
 
 protected:
     PhysicsBody* m_pPhysicsBody = nullptr;
-    ShapeType m_ShapeType;
-    BodyType m_BodyType;
-    vec3 m_Offset;
-    float m_Density;
-    vec3 m_Dimensions;
+    ShapeType m_ShapeType = ShapeType::Box;
+    BodyType m_BodyType = BodyType::StaticBody;
+    vec3 m_Offset = vec3(0,0,0);
+    float m_Density = 1.0f;
+    vec3 m_Dimensions = vec3(0,0,0);
 };
 
 } // namespace fw

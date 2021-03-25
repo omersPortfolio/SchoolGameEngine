@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Math/Vector.h"
+
 namespace fw {
 
 class GameObject;
@@ -34,15 +36,35 @@ public:
     {
         Keyboard,
         Mouse,
+        Controller,
     };
 
     enum class DeviceState
     {
         Pressed,
         Released,
+        LeftStick,
         Typed,
         ScrollUp,
         ScrollDown,
+    };
+
+    enum class ControllerButton
+    {
+        DPadLeft,
+        DPadRight,
+        DPadUp,
+        DPadDown,
+        A,
+        B,
+        X,
+        Y,
+        LeftBumper,
+        RightBumper,
+        Start,
+        Select,
+        LeftThumbstick,
+        RightThumbstick,
     };
 
     InputEvent(DeviceType deviceType, DeviceState deviceState, unsigned int keyCode)
@@ -50,6 +72,20 @@ public:
         m_DeviceType = deviceType;
         m_DeviceState = deviceState;
         m_KeyCode = keyCode;
+    }
+
+    InputEvent(DeviceState deviceState, ControllerButton buttonID)
+    {
+        m_DeviceType = DeviceType::Controller;
+        m_DeviceState = deviceState;
+        m_ButtonID = buttonID;
+    }
+
+    InputEvent(DeviceType deviceType, DeviceState deviceState, vec2 joystickDirection)
+    {
+        m_DeviceType = deviceType;
+        m_DeviceState = deviceState;
+        m_JoystickDirection = joystickDirection;
     }
 
     virtual ~InputEvent() {}
@@ -60,11 +96,16 @@ public:
     DeviceType GetDeviceType() { return m_DeviceType; }
     DeviceState GetDeviceState() { return m_DeviceState; }
     unsigned int GetKeyCode() { return m_KeyCode; }
+    ControllerButton GetButtonID() { return m_ButtonID; }
+    vec2 GetJoystickDirection() { return m_JoystickDirection; }
 
 protected:
     DeviceType m_DeviceType;
     DeviceState m_DeviceState;
     unsigned int m_KeyCode;
+    ControllerButton m_ButtonID;
+
+    vec2 m_JoystickDirection;
 };
 
 //============================================================================

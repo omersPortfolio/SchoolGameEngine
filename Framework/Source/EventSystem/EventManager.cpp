@@ -129,4 +129,15 @@ void EventManager::UnregisterEventListenerCompletely(EventListener* pListener)
     }
 }
 
+bool EventManager::AreAnyListenersRegistered()
+{
+    for (auto& it : m_EventListeners)
+    {
+        if( it.second.size() > 0 )
+            return true;
+    }
+
+    return false;
+}
+
 } // namespace fw

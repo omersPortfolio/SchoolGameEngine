@@ -21,7 +21,11 @@ public:
     bool WasNewlyPressed(Mask mask);
     bool WasNewlyReleased(Mask mask);
 
+    vec2 GetLeftStick() { return m_LeftStick; }
+
 protected:
     unsigned int m_Flags = 0;
     unsigned int m_OldFlags = 0;
+
+    vec2 m_LeftStick = vec2(0);
 };

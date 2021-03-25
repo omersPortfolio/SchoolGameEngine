@@ -13,6 +13,7 @@ class Material
 {
 public:
     Material(ShaderProgram* pShaderProgram, Texture* pTexture, Color color, vec2 uvScale, vec2 uvOffset);
+    Material(ShaderProgram* pShaderProgram, Color color);
     ~Material();
 
     ShaderProgram* GetShader() { return m_pShaderProgram; }
@@ -21,9 +22,9 @@ public:
     vec2 GetUVScale() { return m_UVScale; }
     vec2 GetUVOffset() { return m_UVOffset; }
 
+    void SetShader(ShaderProgram* pShader) { m_pShaderProgram = pShader; }
     void SetTexture(Texture* pTexture) { m_pTexture = pTexture; }
     void SetColor(Color color) { m_Color = color; }
-    void SetShader(ShaderProgram* pShader) { m_pShaderProgram = pShader; } 
     void SetUVScale(vec2 uvScale) { m_UVScale = uvScale; }
     void SetUVOffset(vec2 uvOffset) { m_UVOffset = uvOffset; }
 

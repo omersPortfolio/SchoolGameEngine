@@ -39,6 +39,30 @@ void PlayerController::OnEvent(fw::Event* pEvent)
                 if (pInputEvent->GetKeyCode() == 'D') { m_Flags &= ~Mask::Right; }
             }
         }
+
+        if (pInputEvent->GetDeviceType() == fw::InputEvent::DeviceType::Controller)
+        {
+            if (pInputEvent->GetDeviceState() == fw::InputEvent::DeviceState::Pressed)
+            {
+                if (pInputEvent->GetButtonID() == fw::InputEvent::ControllerButton::DPadUp) { m_Flags |= Mask::Up; }
+                if (pInputEvent->GetButtonID() == fw::InputEvent::ControllerButton::DPadDown) { m_Flags |= Mask::Down; }
+                if (pInputEvent->GetButtonID() == fw::InputEvent::ControllerButton::DPadLeft) { m_Flags |= Mask::Left; }
+                if (pInputEvent->GetButtonID() == fw::InputEvent::ControllerButton::DPadRight) { m_Flags |= Mask::Right; }
+            }
+
+            if (pInputEvent->GetDeviceState() == fw::InputEvent::DeviceState::Released)
+            {
+                if (pInputEvent->GetButtonID() == fw::InputEvent::ControllerButton::DPadUp) { m_Flags &= ~Mask::Up; }
+                if (pInputEvent->GetButtonID() == fw::InputEvent::ControllerButton::DPadDown) { m_Flags &= ~Mask::Down; }
+                if (pInputEvent->GetButtonID() == fw::InputEvent::ControllerButton::DPadLeft) { m_Flags &= ~Mask::Left; }
+                if (pInputEvent->GetButtonID() == fw::InputEvent::ControllerButton::DPadRight) { m_Flags &= ~Mask::Right; }
+            }
+
+            if (pInputEvent->GetDeviceState() == fw::InputEvent::DeviceState::LeftStick)
+            {
+                m_LeftStick = pInputEvent->GetJoystickDirection();
+            }
+        }
     }
 }
 

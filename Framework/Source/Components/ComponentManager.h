@@ -2,8 +2,8 @@
 
 namespace fw {
 
-class Camera;
 class Component;
+class CameraComponent;
 class GameObject;
 class Mesh;
 class AABB;
@@ -14,9 +14,9 @@ public:
     ComponentManager();
     virtual ~ComponentManager();
 
-    void Draw(Camera* pCamera);
+    void Draw(CameraComponent* pCamera);
     void Update(float deltaTime);
-    void ImGuiInspector();
+    void AddToInspector();
 
 #if FW_USING_LUA
     void UpdateLuaScriptComponents(float deltaTime);
@@ -27,8 +27,11 @@ public:
     std::vector<Component*>& GetComponentList(const char* type);
 
 protected:
-    void DrawMeshComponents(Camera* pCamera);
-    void DrawDebugAABBComponents(Camera* pCamera);
+    void DrawMeshComponents(CameraComponent* pCamera);
+    void DrawDebugAABBComponents(CameraComponent* pCamera);
+    void DrawParticleEmitterComponents(CameraComponent* pCamera);
+
+    void UpdateParticleEmitterComponents(float deltaTime);
 
 protected:
     std::map<const char*, std::vector<Component*>> m_Components;

@@ -16,16 +16,18 @@ public:
 
     virtual const char* GetType() = 0;
 
-    virtual void Save(WriterType& writer) {}
+    virtual void Save(WriterType& writer);
     virtual void Load(rapidjson::Value& component) {}
-
-    GameObject* GetGameObject() { return m_pGameObject; }
-    void SetGameObject(GameObject* pGameObject) { m_pGameObject = pGameObject; }
+    virtual void AddToInspector() { ImGui::Text("No properties to edit."); }
 
     virtual void Init() {};
     virtual void Update(float deltaTime) { };
 
-    virtual void ImGuiInspector() {};
+    // Getters.
+    GameObject* GetGameObject() { return m_pGameObject; }
+
+    // Setters.
+    void SetGameObject(GameObject* pGameObject) { m_pGameObject = pGameObject; }
 
 protected:
     GameObject* m_pGameObject = nullptr;

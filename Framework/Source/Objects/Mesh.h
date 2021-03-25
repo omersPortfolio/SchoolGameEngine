@@ -5,35 +5,68 @@
 
 namespace fw {
 
-class Camera;
+class CameraComponent;
+class Material;
+class MyMatrix;
 class ShaderProgram;
 class Texture;
-class Material;
+class TransformComponent;
 
 struct VertexFormat
 {
-    float x;
-    float y;
-    float z;
-    float u;
-    float v;
+    vec3 pos;
+    unsigned char color[4];
+    vec2 uv;
+    vec3 normal;
 
     VertexFormat(float nx, float ny, float nz, float nu, float nv)
     {
-        x = nx;
-        y = ny;
-        z = nz;
-        u = nu;
-        v = nv;
+        pos.x = nx;
+        pos.y = ny;
+        pos.z = nz;
+        color[0] = 1;
+        color[1] = 1;
+        color[2] = 1;
+        color[3] = 1;
+        uv.x = nu;
+        uv.y = nv;
+        normal.Set( 0, 1, 0 );
     }
 
-    VertexFormat(vec3 pos, vec2 uv)
+    VertexFormat(float nx, float ny, float nz, unsigned char nr, unsigned char ng, unsigned char nb, unsigned char na)
     {
-        x = pos.x;
-        y = pos.y;
-        z = pos.z;
-        u = uv.x;
-        v = uv.y;
+        pos.x = nx;
+        pos.y = ny;
+        pos.z = nz;
+        color[0] = nr;
+        color[1] = ng;
+        color[2] = nb;
+        color[3] = na;
+        uv.x = 0;
+        uv.y = 0;
+        normal.Set( 0, 1, 0 );
+    }
+
+    VertexFormat(vec3 npos, vec2 nuv)
+    {
+        pos = npos;
+        color[0] = 1;
+        color[1] = 1;
+        color[2] = 1;
+        color[3] = 1;
+        uv = nuv;
+        normal.Set( 0, 1, 0 );
+    }
+
+    VertexFormat(vec3 npos, vec2 nuv, vec3 nnormal)
+    {
+        pos = npos;
+        color[0] = 1;
+        color[1] = 1;
+        color[2] = 1;
+        color[3] = 1;
+        uv = nuv;
+        normal = nnormal;
     }
 };
 
@@ -52,6 +85,7 @@ public:
     void Start(int primitiveType);
     void AddVertex(const VertexFormat nVert);
     void AddVertex(const vec3 pos, const vec2 uv);
+    void AddVertex(const vec3 pos, unsigned char r, unsigned char g, unsigned char b, unsigned char a);
     void AddVertex(const vec3 pos, const float u, const float v);
     void AddVertex(const float x, const float y, const float z, const float u, const float v);
     void AddVertex(const float x, const float y, const float z, const vec2 uv);
@@ -70,8 +104,10 @@ public:
     void SetUniform4f(ShaderProgram* pShader, char* name, vec4 value);
     void SetUniform1i(ShaderProgram* pShader, char* name, int value);
 
-    void Draw(Camera* pCamera, vec3 pos, vec3 rot, vec3 scale, Material* pMaterial);
-    void Draw(Camera* pCamera, vec3 pos, vec3 rot, vec3 scale, ShaderProgram* pShader, Texture* pTexture, Color color, vec2 UVScale, vec2 UVOffset);
+    void Draw(CameraComponent* pCamera, TransformComponent* pTransform, Material* pMaterial);
+    void Draw(CameraComponent* pCamera, TransformComponent* pTransform, ShaderProgram* pShader, Texture* pTexture, Color color, vec2 UVScale, vec2 UVOffset);
+    void Draw(CameraComponent* pCamera, MyMatrix* pWorldMatrix, Material* pMaterial);
+    void Draw(CameraComponent* pCamera, MyMatrix* pWorldMatrix, ShaderProgram* pShader, Texture* pTexture, Color color, vec2 UVScale, vec2 UVOffset);
 
 protected:
     GLuint m_IBO = 0;

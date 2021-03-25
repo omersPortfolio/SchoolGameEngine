@@ -21,6 +21,8 @@ public:
     virtual void SetDensity(float density) = 0;
 
     virtual vec3 GetPosition() = 0;
+    virtual vec3 GetRotation() = 0;
+    virtual float GetMass() = 0;
 
     virtual void ApplyForceToCenter(vec3 force) = 0;
     virtual void ApplyImpulseToCenter(vec3 impulse) = 0;

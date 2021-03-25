@@ -14,10 +14,15 @@ public:
     virtual void Update(float deltaTime) override;
     virtual void Draw() override;
 
-    void GetGameRenderWindowInfo(ImVec2* WindowPos = nullptr, ImVec2* WindowSize = nullptr) override { *WindowSize = GameRenderwindowSize; *WindowPos = GameRenderWindowPos;}
+    void GetGameRenderWindowInfo(vec2* windowPos = nullptr, vec2* windowSize = nullptr) override;
+    
+    void MousePicker();
+    void Editor_InitFileDialog();
+    void Editor_SaveDialog();
+    void Editor_LoadDialog();
+    void Editor_GameWindow();
     void Editor_MainMenu();
     void Editor_SetupDocking();
-    
     
     fw::ShaderProgram* GetShader(std::string name) { return m_pResourceManager->GetShader(name); }
     fw::Mesh* GetMesh(std::string name) { return m_pResourceManager->GetMesh(name); }
@@ -28,10 +33,14 @@ public:
 
 protected:
     fw::ImGuiManager* m_pImGuiManager = nullptr;
+    ifd::FileDialog* m_pFileDialog = nullptr;
+    bool m_SaveDialogVisible = false;
+    bool m_LoadDialogVisible = false;
 
     PlayerController* m_pPlayerController = nullptr;
 
     fw::FrameBufferObject* m_pFBO = nullptr;
+    fw::FrameBufferObject* m_pMousePickerFBO = nullptr;
 
     std::map<std::string, fw::AABB*> m_pAABB;
     fw::Scene* m_pScene = nullptr;
@@ -41,9 +50,11 @@ protected:
     bool m_LogOpen = true;
     Log* m_Log;
 
-    ImVec2 GameRenderWindowPos;
-    ImVec2 GameRenderwindowSize;
     fw::TextureManager* m_pTextureManager;
     fw::ResourcesPanel* m_pResourcePanel;
     fw::TransformGizmo2D* m_pTransformGizmo2D = nullptr;
+
+    // Misc.
+    vec2 m_GameWindowPosition = vec2(0, 0);
+    vec2 m_GameWindowSize = vec2(0, 0);
 };

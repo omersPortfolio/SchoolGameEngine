@@ -5,11 +5,14 @@ namespace fw {
 
 class Material;
 class ShaderProgram;
+class Mesh;
+class vec4;
+class CameraComponent;
 
 class Box2dDebugDraw : public b2Draw
 {
 public:
-    Box2dDebugDraw(Material* pMaterial);
+    Box2dDebugDraw();
     ~Box2dDebugDraw();
 
     virtual void DrawPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override;
@@ -20,11 +23,17 @@ public:
     virtual void DrawTransform(const b2Transform& xf) override;
     virtual void DrawPoint(const b2Vec2& p, float size, const b2Color& color) override;
 
-    //void SetViewAndProj(vec4* view, vec4* proj);
+    void StartMeshes();
+    void EndMeshes();
+
+    void SetCamera(CameraComponent* camera);
 
     Material* m_pMaterial;
-
     ShaderProgram* m_pShader;
+    Mesh* m_pMeshTriangles;
+    Mesh* m_pMeshLines;
+    Mesh* m_pMeshPoints;
+    CameraComponent* m_pCamera;
 };
 
 } // namespace fw

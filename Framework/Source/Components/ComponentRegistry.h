@@ -2,28 +2,32 @@
 
 namespace fw {
 
-class Camera;
+class AABB;
+class CameraComponent;
 class Component;
 class GameObject;
 class Mesh;
-class AABB;
+class Scene;
 
 class ComponentRegistry
 {
 public:
+    typedef Component* (*CreateComponentFn)(void);
+
+public:
     ComponentRegistry();
     ComponentRegistry(const Component &) {};
-    ComponentRegistry& operator=(const Component&) { return *this; }
-
     ~ComponentRegistry() { m_ComponentTypes.clear(); }
 
-    typedef Component* (*CreateComponentFn)(void);
+    ComponentRegistry& operator=(const Component&) { return *this; }
+
+    void AddInterfaceToCreateComponents(Scene* pScene, GameObject* pObject);
+
+    void Register(const std::string& Name, CreateComponentFn pfnCreate);
+    Component* CreateComponent(const std::string& componentName);
+    
+protected:
     std::map<const std::string, CreateComponentFn> m_ComponentTypes;
-
-    void Register(const std::string &Name, CreateComponentFn pfnCreate);
-    Component* GetComponent(const std::string& componentName);
-
-    void AddInterfaceToCreateComponents(GameObject* pObject);
 };
 
 } // namespace fw

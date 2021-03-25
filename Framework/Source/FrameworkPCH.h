@@ -24,6 +24,8 @@
 #include <queue>
 #include <string>
 
+#include <Xinput.h>
+
 #include <GL/GL.h>
 #include "GL/glext.h"
 #include "GL/wglext.h"
@@ -48,11 +50,11 @@ extern "C"
 #pragma warning( pop )
 #endif //FW_USING_LUA
 
-
 #include "GL/GLExtensions.h"
 #include "GL/WGLExtensions.h"
 
 #include "../Libraries/imgui/imgui.h"
+#include "../Libraries/ImFileDialog/ImFileDialog.h"
 #include "../Libraries/rapidjson/include/rapidjson/document.h"
 #include "../Libraries/rapidjson/include/rapidjson/filewritestream.h"
 #include "../Libraries/rapidjson/include/rapidjson/writer.h"

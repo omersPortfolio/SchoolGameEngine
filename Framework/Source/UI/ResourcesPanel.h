@@ -3,18 +3,19 @@
 namespace fw
 {
 
-class Scene;
-class ResourceManager;
-class Material;
-class Texture;
-class ShaderProgram;
-class MeshComponent;
 class AABBComponent;
+class CameraComponent;
 class Component;
-class TextureManager;
 class FrameBufferObject;
+class GameObject;
+class Material;
 class Mesh;
-class Camera;
+class MeshComponent;
+class ResourceManager;
+class TextureManager;
+class Scene;
+class ShaderProgram;
+class Texture;
 
 enum ResourceType
 {
@@ -81,10 +82,11 @@ public:
     ResourcesPanel(ResourceManager* pActiveResourceManager, TextureManager* pTextureManager, const char* cPanelName, Scene* pActiveScene);
     ~ResourcesPanel();
 
-    static std::string* DropNode(const char* Name, const char* ToolTip, const char* NameId);
-    static std::string* DropNodeImage(Texture* pTexture, const char* Name, const char* ToolTip, const char* NameId);
-    static std::string* DropNodeImageM(Material* pMaterial, const char* Name, const char* ToolTip, const char* NameId); //future
-    static std::string* DropNodeImageS(ShaderProgram* pMaterial, const char* Name, const char* ToolTip, const char* NameId); //future
+    static std::string* DropNode(const char* name, const char* toolTip, const char* nameId);
+    static std::string* DropNodeWithImage(Texture* pTexture, const char* name, const char* toolTip, const char* nameId);
+    static std::string* DropNodeWithImage(Material* pMaterial, const char* name, const char* toolTip, const char* nameId); //future
+    static void DropNodeMesh(Mesh** ppMesh, GameObject* pGameObject);
+    static void DropNodeMaterial(Material** ppMaterial, GameObject* pGameObject);
 
     //Visual
     void ToggleOnOff() { m_IsOn = !m_IsOn; }
@@ -127,7 +129,7 @@ private:
     Material* m_pMaterialBase = nullptr;
     Texture* m_pTextureBase = nullptr;
     ShaderProgram* m_pShaderProgameBase = nullptr;
-    Camera* m_pCamera = nullptr;
+    CameraComponent* m_pCamera = nullptr;
     //UI Features
     std::vector<MyResource*> m_Resources;
 

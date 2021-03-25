@@ -13,6 +13,12 @@ Material::Material(ShaderProgram* pShaderProgram, Texture* pTexture, Color color
     m_UVOffset = uvOffset;
 }
 
+Material::Material(ShaderProgram* pShaderProgram, Color color)
+{
+    m_pShaderProgram = pShaderProgram;
+    m_Color = color;
+}
+
 Material::~Material()
 {
 }

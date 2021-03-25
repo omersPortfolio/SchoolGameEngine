@@ -16,14 +16,14 @@ public:
     virtual void Update(float deltaTime) override;
     virtual void Draw() override;
 
-    void Load(const char* filename);
-
+    void UpdateExampleComponents(float deltaTime);
+    void UpdateDirectMovementComponents(float deltaTime);
+    void UpdatePhysicsMovementComponents(float deltaTime);
+    void UpdateAIFollowComponents(float deltaTime);
+    
     Game* GetGame();
 
     void SetName(std::string NewName);
-
-protected:
-    fw::ParticleEmitter* m_Particles = nullptr;
 
 protected:
     virtual void DrawNewObjectButtons() override;

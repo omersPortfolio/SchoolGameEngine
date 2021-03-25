@@ -1,0 +1,43 @@
+{
+    "PhysicsWorld": {
+        "Exists": true,
+        "Gravity": [0.0, -10.0, 0.0]
+    },
+    "GameObjects": [{
+            "Name": "Floor",
+            "GameObjectComponents": [{
+                    "Type": "TransformComponent",
+                    "Pos": [0.0, -0.699999988079071, 0.0],
+                    "Rot": [0.0, 0.0, 0.0],
+                    "Scale": [7.349999904632568, 1.0, 6.900000095367432]
+                }, {
+                    "Type": "MeshComponent",
+                    "Mesh": "Cube",
+                    "Material": "Lit"
+                }]
+        }, {
+            "Name": "Camera",
+            "GameObjectComponents": [{
+                    "Type": "TransformComponent",
+                    "Pos": [1.3790128231048585, 4.2515153884887699, -8.367718696594239],
+                    "Rot": [-28.009227752685548, 5.852626800537109, 0.0],
+                    "Scale": [1.0, 1.0, 1.0]
+                }, {
+                    "Type": "CameraComponent",
+                    "ProjectionScale": [5.0, 5.0],
+                    "CameraView": 1
+                }]
+        }, {
+            "Name": "Cube",
+            "GameObjectComponents": [{
+                    "Type": "TransformComponent",
+                    "Pos": [4.900000095367432, 0.44999998807907107, 0.0],
+                    "Rot": [0.0, 0.0, 0.0],
+                    "Scale": [1.0, 1.0, 1.0]
+                }, {
+                    "Type": "MeshComponent",
+                    "Mesh": "Cube",
+                    "Material": "Lit"
+                }]
+        }]
+}

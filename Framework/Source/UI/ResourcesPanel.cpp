@@ -1,18 +1,20 @@
 #include "FrameworkPCH.h"
+
 #include "ResourcesPanel.h"
-#include "Scene/Scene.h"
-#include "Objects/ResourceManager.h"
-#include "Core/GameCore.h"
+#include "TextureManager.h"
+#include "Components/CameraComponent.h"
 #include "Components/Component.h"
 #include "Components/MeshComponent.h"
 #include "Components/AABBComponent.h"
-#include "Objects/Texture.h"
+#include "Core/GameCore.h"
+#include "Objects/GameObject.h"
 #include "Objects/Material.h"
-#include "Utility/ShaderProgram.h"
-#include "TextureManager.h"
-#include "Utility/FrameBufferObject.h"
 #include "Objects/Mesh.h"
-#include "Objects/Camera.h"
+#include "Objects/ResourceManager.h"
+#include "Objects/Texture.h"
+#include "Scene/Scene.h"
+#include "Utility/ShaderProgram.h"
+#include "Utility/FrameBufferObject.h"
 
 namespace fw {
 
@@ -33,7 +35,7 @@ ResourcesPanel::ResourcesPanel(ResourceManager* pActiveResourceManager, TextureM
     m_pShaderProgameBase = m_pResourceManager->GetShader("Basic");
     m_pTextureBase = m_pResourceManager->GetTexture("Green");
 
-    m_pCamera = new Camera(nullptr, vec2(5, 5), vec2(2, 2), vec2(5, 5));
+    //m_pCamera = new CameraComponent(nullptr, vec2(5, 5), vec2(2, 2), vec2(5, 5));
 
     Width = 64;
     Height = 64;
@@ -87,18 +89,17 @@ void ResourcesPanel::UpdateAssetList(ResourceType eResourceTypes)
         m_Resources[Index]->PopulateAssetList<Mesh>(m_pResourceManager->m_pMeshes);
 }
 
-std::string* ResourcesPanel::DropNode(const char* Name, const char* ToolTip, const char* NameId)
+std::string* ResourcesPanel::DropNode(const char* name, const char* toolTip, const char* nameId)
 {
-    ImGui::BeginChild(Name, ImVec2(125, 30), true);
-    if (ImGui::TreeNodeEx(Name, ImGuiTreeNodeFlags_Leaf))
+    ImGui::BeginChild(name, ImVec2(125, 30), true);
+    if (ImGui::TreeNodeEx(name, ImGuiTreeNodeFlags_Leaf, "%s (%s)", name, nameId))
     {
         if (ImGui::BeginDragDropTarget())
         {
-            ImGui::SetTooltip(ToolTip);
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(NameId))
+            ImGui::SetTooltip(toolTip);
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(nameId))
             {
                 std::string* pAssetData = static_cast<std::string*>(payload->Data);
-                //m_AssetName = *pAssetData;
 
                 ImGui::EndDragDropTarget();
                 ImGui::TreePop();
@@ -113,7 +114,7 @@ std::string* ResourcesPanel::DropNode(const char* Name, const char* ToolTip, con
     return nullptr;
 }
 
-std::string* ResourcesPanel::DropNodeImage(Texture* pTexture, const char* Name, const char* ToolTip, const char* NameId)
+std::string* ResourcesPanel::DropNodeWithImage(Texture* pTexture, const char* name, const char* toolTip, const char* nameId)
 {
     ImGui::BeginChild("#Button#", ImVec2(200, 55), true);
     ImTextureID tex_id = (void*)(intptr_t)pTexture->GetHandle();
@@ -146,13 +147,13 @@ std::string* ResourcesPanel::DropNodeImage(Texture* pTexture, const char* Name, 
         ImGui::EndTooltip();
     }
     ImGui::SameLine(50, 2);
-    std::string* valueDropped = DropNode(Name, ToolTip, NameId);
+    std::string* valueDropped = DropNode(name, toolTip, nameId);
 
     ImGui::EndChild();
     return valueDropped;
 }
 
-std::string* ResourcesPanel::DropNodeImageM(Material* pMaterial, const char* Name, const char* ToolTip, const char* NameId)
+std::string* ResourcesPanel::DropNodeWithImage(Material* pMaterial, const char* name, const char* toolTip, const char* nameId)
 {
     //BindFBO();
     //glClearColor(0, 0, 0.2f, 1);
@@ -194,15 +195,54 @@ std::string* ResourcesPanel::DropNodeImageM(Material* pMaterial, const char* Nam
     }
 
     //ImGui::SameLine(50, 2);
-    std::string* valueDropped = DropNode(Name, ToolTip, NameId);
+    std::string* valueDropped = DropNode(name, toolTip, nameId);
 
     //ImGui::EndChild();
     return valueDropped;
 }
 
-std::string* ResourcesPanel::DropNodeImageS(ShaderProgram* pMaterial, const char* Name, const char* ToolTip, const char* NameId)
+void ResourcesPanel::DropNodeMesh(Mesh** ppMesh, GameObject* pGameObject)
 {
-    return false;
+    ResourceManager* pResources = pGameObject->GetScene()->GetGameCore()->GetResourceManager();
+
+    std::string* meshNameDropped = nullptr;
+
+    if (*ppMesh)
+    {
+        std::string meshName = pResources->FindMeshName( *ppMesh );
+        meshNameDropped = ResourcesPanel::DropNode(meshName.c_str(), "", "Meshes");
+    }
+    else
+    {
+        meshNameDropped = ResourcesPanel::DropNode("No mesh", "", "Meshes");
+    }
+
+    if (meshNameDropped)
+    {
+        *ppMesh = pResources->GetMesh(*meshNameDropped);
+    }
+}
+
+void ResourcesPanel::DropNodeMaterial(Material** ppMaterial, GameObject* pGameObject)
+{
+    ResourceManager* pResources = pGameObject->GetScene()->GetGameCore()->GetResourceManager();
+        
+    std::string* matNameDropped = nullptr;
+
+    if (*ppMaterial)
+    {
+        std::string materialName = pResources->FindMaterialName( *ppMaterial );
+        matNameDropped = ResourcesPanel::DropNodeWithImage((*ppMaterial)->GetTexture(), materialName.c_str(), "", "Materials");
+    }
+    else
+    {
+        matNameDropped = ResourcesPanel::DropNode("No material", "", "Materials");
+    }
+
+    if (matNameDropped)
+    {
+        *ppMaterial = pResources->GetMaterial(*matNameDropped);
+    }
 }
 
 void ResourcesPanel::AddResource(const char* name, ResourceType eResourceTypes, bool open, const ImVec4& color)
@@ -412,7 +452,13 @@ void ResourcesPanel::DrawFBO(std::string& AssetName, ResourceType eRsourceType)
 //Used for DropNodes;
 void ResourcesPanel::DrawFBOM(Material* pMaterial)
 {
-    m_pMeshBase->Draw(m_pCamera, vec3(5, 5, 0), vec2(2, 2), vec2(0, 1), pMaterial);
+    MyMatrix mat;
+    mat.CreateSRT(vec3(5, 5, 0), vec2(2, 2), vec2(0, 1));
+
+    if (m_pCamera)
+    {
+        m_pMeshBase->Draw(m_pCamera, &mat, pMaterial);
+    }
 }
 
 void ResourcesPanel::DrawFBOS(ShaderProgram* pShaderProgram)

@@ -5,7 +5,7 @@ namespace fw
 {
 
 class Mesh;
-class Camera;
+class CameraComponent;
 class vec3;
 class ShaderProgram;
 class Texture;
@@ -35,7 +35,7 @@ struct Gizmo2D
     Mesh* m_pOriginMesh;
 
     GizmoState m_GizmoState = GizmoState::NONE;
-    void Draw(Camera* pCamera, vec3 pos, vec3 rot, vec3 scale, ShaderProgram* pShader, class Texture* pTexture, vec2 UVScale, vec2 UVOffset);
+    void Draw(CameraComponent* pCamera, vec3 pos, vec3 rot, vec3 scale, ShaderProgram* pShader, class Texture* pTexture, vec2 UVScale, vec2 UVOffset);
 
     ~Gizmo2D();
 };
@@ -68,7 +68,6 @@ private:
 
     GameCore* m_pGameCore = nullptr;
     ShaderProgram* m_pShader = nullptr;
-    Camera* m_pSceneCamera = nullptr;
     GameObject* m_pActiveGameObject = nullptr;
 };
 

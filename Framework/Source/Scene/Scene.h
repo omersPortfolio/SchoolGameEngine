@@ -5,14 +5,16 @@
 class PlayerController;
 
 namespace fw {
-class ComponentRegistry;
+
 class ComponentManager;
+class CameraComponent;
+class Event;
 class GameCore;
 class GameObject;
-class Event;
-class Camera;
-class PhysicsWorld;
 class LuaGameState;
+class Material;
+class PhysicsWorld;
+class ResourceManager;
 
 class Scene : public EventListener
 {
@@ -25,17 +27,21 @@ public:
     virtual void OnEvent(Event* pEvent);
     virtual void Update(float deltaTime);
     virtual void Draw();
+    virtual void DrawMousePickingMeshes();
     virtual void DrawObjectList();
+    bool DrawObject(GameObject* pObject, int& item_selected, int& index);
     virtual void DrawNewObjectButtons();
     virtual void DrawImguiDemoWindow();
-
     virtual void DrawImGuiInspector();
-    virtual void Save(const char* filename);
+    
+    // Save/Load.
+    void LoadFromFile(std::string path, std::string sceneName);
+    void SaveToFile();
+    void SaveToFile(std::string filename);
 
     // Getters.
-    inline const char* GetSceneName() { return m_SceneName; }
+    std::string GetPath() { return m_Path; }
     GameObject* GetSelectedGameObject() {return m_ImGuiSelectedObject;}
-    Camera* GetSceneCamera() {return m_pCamera;}
     GameCore* GetGameCore() { return m_pGameCore; }
     ComponentManager* GetComponentManager() { return m_pComponentManager; }
     std::string GetName() { return m_Name; }
@@ -46,7 +52,13 @@ public:
 
     bool GetIsObjectListOn() { return m_IsObjectListOn; }
 
+    CameraComponent* GetActiveCameraComponent() { return m_pActiveCameraComponent; }
+
     // Setters.
+    virtual void SetPath(std::string path) { m_Path = path; }
+    virtual void SetName(std::string name) { m_Name = name; }
+
+    virtual void SelectObject(int selectedObject);
     void ToggleObjectList() { m_IsObjectListOn = !m_IsObjectListOn; }
     void ToggleObjectDetails() { m_IsObjectInspectorOn = !m_IsObjectInspectorOn; }
     void ToggleImguiDemo() { m_IsImguiDemoWindowOn = !m_IsImguiDemoWindowOn; }
@@ -54,29 +66,31 @@ public:
     void CheckAABBCollision();
     void ClearScene();
 
+    void SetActiveCameraComponent(CameraComponent* pActiveCamera) { m_pActiveCameraComponent = pActiveCamera; }
+    bool m_DebugDraw = true;
+
 protected:
+    std::string m_Path = "";
+    std::string m_Name = "Scene";
+
     GameCore* m_pGameCore = nullptr;
-
-    const char* m_SceneName = "";
-
     std::vector<GameObject*> m_Objects;
 
-    Camera* m_pCamera = nullptr;
-
     ComponentManager* m_pComponentManager = nullptr;
-    ComponentRegistry* m_pComponentRegistry = nullptr;
-
-    std::string m_Name = "Scene";
+    CameraComponent* m_pActiveCameraComponent = nullptr;
 
     GameObject* m_ImGuiSelectedObject = nullptr;
     PlayerController* m_pPlayerController = nullptr;
-
     PhysicsWorld* m_pWorld = nullptr;
 
     LuaGameState* m_pLuaGameState = nullptr;
 
-    inline static bool m_IsObjectListOn = true;        // bootleg code to fix windows 
-    inline static bool m_IsObjectSelectorOn = true;    // reappearing when switching scenes
+    // For mouse picking.
+    Material* m_pMousePickerMaterial = nullptr;
+
+    // bootleg code to fix windows reappearing when switching scenes.
+    inline static bool m_IsObjectListOn = true;
+    inline static bool m_IsObjectSelectorOn = true;
     inline static bool m_IsObjectInspectorOn = true;
     inline static bool m_IsImguiDemoWindowOn = false;
 };

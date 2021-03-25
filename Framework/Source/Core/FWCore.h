@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EventSystem/Event.h"
+
 namespace fw {
 
 class MyGLContext;
@@ -25,6 +27,9 @@ protected:
     bool m_MouseButtonStates[3];
     bool m_OldKeyStates[256];
     bool m_OldMouseButtonStates[3];
+    XINPUT_STATE m_OldXInputState;
+    XINPUT_STATE m_XInputState;
+
     bool m_WindowIsActive;
     bool m_FullscreenMode;
     unsigned int m_KeyTyped[256];
@@ -51,9 +56,16 @@ public:
 
     bool IsKeyDown(int value);
     bool IsMouseButtonDown(int id);
+    bool WasMouseButtonDown(int id);
     void GetMouseCoordinates(int* mx, int* my);
     bool IsKeyTyped(int value);
     float GetMouseWheel();
+
+    void XInput_SendEvents();
+    bool XInput_WasButtonNewlyPressed(int mask);
+    bool XInput_WasButtonNewlyReleased(int mask);
+    void XInput_SendSingleButtonEvent(int xinputMask, InputEvent::ControllerButton buttonID);
+    void XInput_SendLeftJoystickEvent();
 
     unsigned int GetWindowWidth() { return m_WindowWidth; }
     unsigned int GetWindowHeight() { return m_WindowHeight; }

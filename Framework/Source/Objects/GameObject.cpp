@@ -1,50 +1,57 @@
 #include "FrameworkPCH.h"
 
-#include "EventSystem/EventManager.h"
-#include "Scene/Scene.h"
-#include "Core/GameCore.h"
-#include "Objects/AABB.h"
-
 #include "GameObject.h"
-#include "Mesh.h"
-#include "Scene/Scene.h"
-#include "Components/MeshComponent.h"
+#include "Core/GameCore.h"
 #include "Components/AABBComponent.h"
+#include "Components/CameraComponent.h"
 #include "Components/CollisionComponent.h"
-#include "Scene/Scene.h"
 #include "Components/ComponentManager.h"
-#include "Material.h"
+#include "Components/MeshComponent.h"
+#include "Components/TransformComponent.h"
+#include "EventSystem/EventManager.h"
+#include "Objects/AABB.h"
+#include "Objects/Material.h"
+#include "Objects/Mesh.h"
+#include "Objects/ResourceManager.h"
 #include "Physics/PhysicsBody.h"
-#include "ResourceManager.h"
-#include "Utility/JSONHelpers.h"
+#include "Scene/Scene.h"
 #include "UI/ResourcesPanel.h"
+#include "Utility/JSONHelpers.h"
 
 namespace fw {
 
-GameObject::GameObject(Scene* pScene, std::string name, vec3 pos, vec3 rot, vec3 scale, Material* pMaterial)
+GameObject::GameObject(Scene* pScene, std::string name)
 {
     m_pScene = pScene;
     m_Name = name;
-
-    m_Position = pos;
-    m_Rotation = rot;
-    m_Scale = scale;
-
-    m_pMaterial = pMaterial;
 }
 
 GameObject::GameObject(GameObject& orgnlGO)
 {
     *this = orgnlGO;
     SetName(std::string("New ") + GetName().c_str());
+    m_pTransform = nullptr;
 
     m_Components.clear();
+
     for (int i = 0; i < orgnlGO.m_Components.size(); i++)
     {
+        if (orgnlGO.m_Components[i]->GetType() == TransformComponent::GetStaticType())
+        {
+            TransformComponent* cComponent = static_cast<TransformComponent*>(orgnlGO.m_Components[i]);
+
+            TransformComponent* nComponent = new TransformComponent();
+            nComponent->SetPosition(cComponent->GetPosition());
+            nComponent->SetRotation(cComponent->GetRotation());
+            nComponent->SetScale(cComponent->GetScale());
+
+            this->AddComponent(nComponent);
+            m_pTransform = nComponent;
+        }
         if (orgnlGO.m_Components[i]->GetType() == MeshComponent::GetStaticType())
         {
             MeshComponent* cComponent = static_cast<MeshComponent*>(orgnlGO.m_Components[i]);
-            this->AddComponent(new MeshComponent(cComponent->GetMesh()));
+            this->AddComponent(new MeshComponent(cComponent->GetMesh(), cComponent->GetMaterial()));
         }
         if (orgnlGO.m_Components[i]->GetType() == AABBComponent::GetStaticType())
         {
@@ -75,10 +82,9 @@ GameObject::~GameObject()
 
 void GameObject::Update(float deltaTime)
 {
-    m_pScene->GetComponentManager()->Update(deltaTime);
 }
 
-void GameObject::Draw(Camera* pCamera)
+void GameObject::Draw(CameraComponent* pCamera)
 {
     //m_pMesh->Draw( pCamera, m_Position, m_pShader, m_pTexture, m_Color, m_UVScale, m_UVOffset );
 }
@@ -90,39 +96,15 @@ void GameObject::Save(WriterType& writer)
     writer.Key("Name");
     writer.String(m_Name.c_str());
 
-    JSONSaveVec3(writer, "Pos", m_Position);
-    JSONSaveVec3(writer, "Rot", m_Rotation);
-    JSONSaveVec3(writer, "Scale", m_Scale);
-
-    if (m_pMaterial != nullptr)
-    {
-        writer.Key("Textures");
-        writer.String(pResources->FindTextureName(m_pMaterial->GetTexture()).c_str());
-
-        writer.Key("Color");
-        writer.StartArray();
-        writer.Double(m_pMaterial->GetColor().r);
-        writer.Double(m_pMaterial->GetColor().g);
-        writer.Double(m_pMaterial->GetColor().b);
-        writer.Double(m_pMaterial->GetColor().a);
-        writer.EndArray();
-
-        JSONSaveVec2(writer, "uvScale", m_pMaterial->GetUVScale());
-        JSONSaveVec2(writer, "uvOffset", m_pMaterial->GetUVOffset());
-    }
-
-    writer.Key("Shader");
-    writer.String("Basic");
-
     if (!m_Components.empty())
     {
         writer.Key("GameObjectComponents");
         writer.StartArray();
 
-        for (Component* component : m_Components)
+        for (Component* pComponent : m_Components)
         {
             writer.StartObject();
-            component->Save(writer);
+            pComponent->Save(writer);
             writer.EndObject();
         }
 
@@ -132,6 +114,12 @@ void GameObject::Save(WriterType& writer)
 
 void GameObject::AddComponent(Component* pComponent)
 {
+    // Make sure there is only 1 Transform component.
+    if (pComponent->GetType() == TransformComponent::GetStaticType() && m_pTransform)
+    {
+        return;
+    }
+
     pComponent->SetGameObject(this);
     pComponent->Init();
     m_pScene->GetComponentManager()->AddComponent(pComponent);
@@ -140,9 +128,9 @@ void GameObject::AddComponent(Component* pComponent)
 
 Component* GameObject::GetFirstComponentOfType(const char* type)
 {
-    for( Component* pComponent : m_Components )
+    for (Component* pComponent : m_Components)
     {
-        if( pComponent->GetType() == type )
+        if (pComponent->GetType() == type)
         {
             return pComponent;
         }
@@ -151,10 +139,14 @@ Component* GameObject::GetFirstComponentOfType(const char* type)
     return nullptr;
 }
 
-void GameObject::ImGuiInspector()
+TransformComponent* GameObject::GetTransform()
 {
-    ImGui::PushID(m_Name.c_str());
+    Component* pComponent = GetFirstComponentOfType(TransformComponent::GetStaticType());
+    return static_cast<TransformComponent*>(pComponent);
+}
 
+void GameObject::AddToInspector()
+{
     // Display name and allow for renaming.
     ImGui::BeginGroup();
     {
@@ -165,51 +157,22 @@ void GameObject::ImGuiInspector()
         {
             m_Name = text;
         }
-
-        ImGui::Separator();
-    }
-
-    if (ImGui::DragFloat2("Position", &m_Position.x, 0.05f))
-    {
-        //for (Component* pComponent : m_Components)
-        //{
-        //    pComponent->SetPosition(m_Position);
-        //}
-    };
-    ImGui::EndGroup();
-    
-    if (m_pMaterial)
-    {
-        Color tempColor = m_pMaterial->GetColor();
-        if (ImGui::ColorEdit4("Color", &tempColor.r))
-        {
-            m_pMaterial->SetColor(tempColor);
-        }
-
-        if (ImGui::TreeNodeEx("Material Properties", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            std::string* assetName = ResourcesPanel::DropNodeImageM(m_pMaterial, "Material", "Drop Material", "Materials");
-            if (assetName)
-            {
-                SetMaterial( m_pScene->GetGameCore()->GetResourceManager()->GetMaterial(*assetName) );
-            }
-
-            //if (ResourcesPanel::DropNodeImage(m_pMaterial->GetTexture(), "Texture", "Drop Texture", "Textures"))
-            //    m_pMaterial->SetTexture(ResourcesPanel::SetTextureNode());
-
-            //if (ResourcesPanel::DropNode("Shader", "Drop Shader", "Shaders"))
-            //    m_pMaterial->SetShader(ResourcesPanel::SetShaderNode());
-
-            ImGui::TreePop();
-        }
     }
 
     for (Component* pComponent : m_Components)
     {
-        pComponent->ImGuiInspector();
+        if (ImGui::CollapsingHeader(pComponent->GetType(), ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::PushID(pComponent);
+            pComponent->AddToInspector();
+            ImGui::PopID();
+        }
     }
-
-    ImGui::PopID();
+    if (m_Components.empty())
+    {
+        ImGui::Text("Object has no Components.");
+    }
+    ImGui::EndGroup();
 }
 
 #if FW_USING_LUA

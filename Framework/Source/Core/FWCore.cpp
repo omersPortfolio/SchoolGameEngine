@@ -17,6 +17,7 @@
 #include "Utility/Helpers.h"
 #include "EventSystem/Event.h"
 #include "EventSystem/EventManager.h"
+#include "Math/Vector.h"
 
 namespace fw {
 
@@ -59,7 +60,6 @@ FWCore::FWCore()
     m_FullscreenMode = false;
 
     m_MouseWheel = 0.0f;
-
 }
 
 FWCore::~FWCore()
@@ -116,6 +116,8 @@ int FWCore::Run(GameCore* pGame)
             double deltaTime = currentTime - previousTime;
             previousTime = currentTime;
 
+            XInput_SendEvents();
+
             pGame->StartFrame((float)deltaTime);
             pGame->Update((float)deltaTime);
             pGame->Draw();
@@ -165,7 +167,7 @@ void FWCore::SetWindowSize(int width, int height)
     HMENU menu = GetMenu(m_hWnd);
 
     // Calculate the full size of the window needed to match our client area of width/height.
-    RECT WindowRect = { 0, 0, width, height };
+    RECT WindowRect = {0, 0, width, height};
     AdjustWindowRectEx(&WindowRect, dwStyle, menu ? TRUE : FALSE, dwExStyle);
 
     int windowWidth = WindowRect.right - WindowRect.left;
@@ -194,6 +196,13 @@ bool FWCore::IsMouseButtonDown(int id)
     return m_MouseButtonStates[id];
 }
 
+bool FWCore::WasMouseButtonDown(int id)
+{
+    // 0 left - 1 right - 3 middle
+    assert(id >= 0 && id < 3);
+    return m_OldMouseButtonStates[id];
+}
+
 void FWCore::GetMouseCoordinates(int* mx, int* my)
 {
     POINT p;
@@ -218,6 +227,75 @@ float FWCore::GetMouseWheel()
     return m_MouseWheel;
 }
 
+void FWCore::XInput_SendEvents()
+{
+    int controllerIndex = 0;
+
+    m_OldXInputState = m_XInputState;
+    ZeroMemory(&m_XInputState, sizeof(XINPUT_STATE));
+    DWORD result = XInputGetState(controllerIndex, &m_XInputState);
+
+    XInput_SendSingleButtonEvent(XINPUT_GAMEPAD_DPAD_UP, InputEvent::ControllerButton::DPadUp);
+    XInput_SendSingleButtonEvent(XINPUT_GAMEPAD_DPAD_DOWN, InputEvent::ControllerButton::DPadDown);
+    XInput_SendSingleButtonEvent(XINPUT_GAMEPAD_DPAD_LEFT, InputEvent::ControllerButton::DPadLeft);
+    XInput_SendSingleButtonEvent(XINPUT_GAMEPAD_DPAD_RIGHT, InputEvent::ControllerButton::DPadRight);
+    XInput_SendSingleButtonEvent(XINPUT_GAMEPAD_A, InputEvent::ControllerButton::A);
+    XInput_SendSingleButtonEvent(XINPUT_GAMEPAD_B, InputEvent::ControllerButton::B);
+    XInput_SendSingleButtonEvent(XINPUT_GAMEPAD_X, InputEvent::ControllerButton::X);
+    XInput_SendSingleButtonEvent(XINPUT_GAMEPAD_Y, InputEvent::ControllerButton::Y);
+
+    XInput_SendLeftJoystickEvent();
+}
+
+bool FWCore::XInput_WasButtonNewlyPressed(int mask)
+{
+    return ((m_XInputState.Gamepad.wButtons & mask) != 0) && ((m_OldXInputState.Gamepad.wButtons & mask) == 0);
+}
+
+bool FWCore::XInput_WasButtonNewlyReleased(int mask)
+{
+    return ((m_XInputState.Gamepad.wButtons & mask) == 0) && ((m_OldXInputState.Gamepad.wButtons & mask) != 0);
+}
+
+void FWCore::XInput_SendSingleButtonEvent(int xinputMask, InputEvent::ControllerButton buttonID)
+{
+    if (XInput_WasButtonNewlyPressed(xinputMask))
+    {
+        InputEvent* pEvent = new InputEvent(InputEvent::DeviceState::Pressed, buttonID);
+        m_pGame->GetEventManager()->AddEvent(pEvent);
+    }
+    else if (XInput_WasButtonNewlyReleased(xinputMask))
+    {
+        InputEvent* pEvent = new InputEvent(InputEvent::DeviceState::Released, buttonID);
+        m_pGame->GetEventManager()->AddEvent(pEvent);
+    }
+}
+
+void FWCore::XInput_SendLeftJoystickEvent()
+{
+    vec2 leftStick(m_XInputState.Gamepad.sThumbLX, m_XInputState.Gamepad.sThumbLY);
+
+    float deadzone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
+    float length = leftStick.Length();
+
+    if (length < deadzone)
+    {
+        leftStick.Set(0, 0);
+    }
+    else
+    {
+        vec2 dir = leftStick / length;
+        length = (length - deadzone) / (32767 - deadzone);
+        if (length > 1)
+            length = 1;
+        leftStick = dir * length;
+    }
+
+    InputEvent* pEvent = new InputEvent(InputEvent::DeviceType::Controller,
+                                        InputEvent::DeviceState::LeftStick,
+                                        leftStick);
+    m_pGame->GetEventManager()->AddEvent(pEvent);
+}
 
 void FWCore::SwapBuffers()
 {

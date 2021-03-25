@@ -25,9 +25,13 @@ public:
     virtual void SetDensity(float density) override;
 
     virtual vec3 GetPosition() override;
+    virtual vec3 GetRotation() override;
+    virtual float GetMass() override;
 
     virtual void ApplyForceToCenter(vec3 force) override;
     virtual void ApplyImpulseToCenter(vec3 impulse) override;
+
+    b2Body* GetBody() { return m_pBody; }
 };
 
 }

@@ -144,12 +144,12 @@ void TextureManager::Update(Scene* pActiveScene)
             ImVec4 bg_col = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
             ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-            // Assigning texture to gameobject.
-            if (ImGui::ImageButton(tex_id, size, uv0, uv1, -1, bg_col, tint_col))
-            {
-                active_GO->GetMaterial()->SetTexture(tex);
-                LOG(INFO, "Texture Assigned");
-            }
+            //// Assigning texture to gameobject.
+            //if (ImGui::ImageButton(tex_id, size, uv0, uv1, -1, bg_col, tint_col))
+            //{
+            //    active_GO->GetMaterial()->SetTexture(tex);
+            //    LOG(INFO, "Texture Assigned");
+            //}
 
             if (ImGui::IsItemHovered())
             {

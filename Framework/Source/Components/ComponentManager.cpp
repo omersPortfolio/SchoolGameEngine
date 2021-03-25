@@ -1,14 +1,19 @@
 #include "FrameworkPCH.h"
+
 #include "ComponentManager.h"
-#include "MeshComponent.h"
-#include "CollisionComponent.h"
-#include "AABBComponent.h"
+#include "Components/AABBComponent.h"
+#include "Components/CameraComponent.h"
+#include "Components/CollisionComponent.h"
+#include "Components/LuaScriptComponent.h"
+#include "Components/MeshComponent.h"
+#include "Components/ParticleEmitterComponent.h"
+#include "Components/TransformComponent.h"
+#include "Lua/LuaGameState.h"
 #include "Objects/GameObject.h"
 #include "Objects/Mesh.h"
 #include "Objects/AABB.h"
-#include "LuaScriptComponent.h"
+#include "Particles/ParticleEmitter.h"
 #include "Scene/Scene.h"
-#include "Lua/LuaGameState.h"
 
 namespace fw {
 
@@ -20,9 +25,10 @@ ComponentManager::~ComponentManager()
 {
 }
 
-void ComponentManager::Draw(Camera* pCamera)
+void ComponentManager::Draw(CameraComponent* pCamera)
 {
     DrawMeshComponents(pCamera);
+    DrawParticleEmitterComponents(pCamera);
     DrawDebugAABBComponents(pCamera);
 }
 
@@ -31,8 +37,7 @@ void ComponentManager::Update(float deltaTime)
     std::vector<Component*>& list = m_Components[AABBComponent::GetStaticType()];
     for (int i = 0; i < list.size(); i++)
     {
-        AABBComponent* pAABBComponent = static_cast<AABBComponent*>(list[i]);
- 
+        AABBComponent* pAABBComponent = static_cast<AABBComponent*>(list[i]); 
     }
 
 #if FW_USING_LUA
@@ -46,16 +51,18 @@ void ComponentManager::Update(float deltaTime)
 
         pCollisionComponent->Update(deltaTime);
     }
+
+    UpdateParticleEmitterComponents(deltaTime);
 }
 
-void ComponentManager::ImGuiInspector()
+void ComponentManager::AddToInspector()
 {
     std::vector<Component*>& collisionComponentsList = m_Components[CollisionComponent::GetStaticType()];
     for (int i = 0; i < collisionComponentsList.size(); i++)
     {
         CollisionComponent* pCollisionComponent = static_cast<CollisionComponent*>(collisionComponentsList[i]);
 
-        pCollisionComponent->ImGuiInspector();
+        pCollisionComponent->AddToInspector();
     }
 }
 
@@ -80,7 +87,19 @@ std::vector<Component*>& ComponentManager::GetComponentList(const char* type)
     return m_Components[type];
 }
 
-void ComponentManager::DrawMeshComponents(Camera* pCamera)
+void ComponentManager::UpdateParticleEmitterComponents(float deltaTime)
+{
+    std::vector<Component*>& list = m_Components[ParticleEmitterComponent::GetStaticType()];
+    for (int i = 0; i < list.size(); i++)
+    {
+        ParticleEmitterComponent* pEmitterComponent = static_cast<ParticleEmitterComponent*>(list[i]);
+
+        ParticleEmitter* pEmitter = pEmitterComponent->GetEmitter();
+        pEmitter->Update(deltaTime);
+    }
+}
+
+void ComponentManager::DrawMeshComponents(CameraComponent* pCamera)
 {
     std::vector<Component*>& list = m_Components[MeshComponent::GetStaticType()];
     for (int i = 0; i < list.size(); i++)
@@ -88,16 +107,31 @@ void ComponentManager::DrawMeshComponents(Camera* pCamera)
         MeshComponent* pMeshComponent = static_cast<MeshComponent*>(list[i]);
 
         GameObject* pGO = pMeshComponent->GetGameObject();
-        if( pMeshComponent->GetMesh() )
+
+        if( pGO != nullptr && pGO->GetTransform() &&
+           pMeshComponent->GetMesh() && pMeshComponent->GetMaterial() )
         {
             pMeshComponent->GetMesh()->Draw(pCamera,
-                                            pGO->GetPosition(), pGO->GetRotation(), pGO->GetScale(),
-                                            pGO->GetMaterial());
+                                            pGO->GetTransform(),
+                                            pMeshComponent->GetMaterial());
         }
     }
 }
 
-void ComponentManager::DrawDebugAABBComponents(Camera* pCamera)
+void ComponentManager::DrawParticleEmitterComponents(CameraComponent* pCamera)
+{
+    std::vector<Component*>& list = m_Components[ParticleEmitterComponent::GetStaticType()];
+    for (int i = 0; i < list.size(); i++)
+    {
+        ParticleEmitterComponent* pEmitterComponent = static_cast<ParticleEmitterComponent*>(list[i]);
+
+        GameObject* pGO = pEmitterComponent->GetGameObject();
+        ParticleEmitter* pEmitter = pEmitterComponent->GetEmitter();
+        pEmitter->Draw(pCamera, pGO->GetTransform()->GetPosition());
+    }
+}
+
+void ComponentManager::DrawDebugAABBComponents(CameraComponent* pCamera)
 {
     std::vector<Component*>& list = m_Components[AABBComponent::GetStaticType()];
     for (int i = 0; i < list.size(); i++)
@@ -107,9 +141,9 @@ void ComponentManager::DrawDebugAABBComponents(Camera* pCamera)
         GameObject* pGO = pAABBComponent->GetGameObject();
         if( pAABBComponent->GetMesh() )
         {
-            pAABBComponent->GetMesh()->Draw(pCamera,
-                                            pGO->GetPosition(), pGO->GetRotation(), pGO->GetScale(),
-                                            pGO->GetMaterial());
+            //pAABBComponent->GetMesh()->Draw(pCamera,
+            //                                pGO->GetTransform(),
+            //                                pGO->GetMaterial());
         }
     }
 }

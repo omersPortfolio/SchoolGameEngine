@@ -1,7 +1,10 @@
 #include "GamePCH.h"
 
 #include "Game.h"
-#include "Objects/Player.h"
+#include "Components/DirectMovementComponent.h"
+#include "Components/ExampleComponent.h"
+#include "Components/AIFollowComponent.h"
+#include "Components/PhysicsMovementComponent.h"
 #include "Objects/PlayerController.h"
 #include "Objects/Shapes.h"
 #include "Events/GameEvents.h"
@@ -14,7 +17,10 @@ Game::Game(fw::FWCore* pFramework) : fw::GameCore(pFramework)
 
 Game::~Game()
 {
+    delete m_pFileDialog;
+
     delete m_pFBO;
+    delete m_pMousePickerFBO;
 
     delete m_pScene;
 
@@ -26,22 +32,23 @@ Game::~Game()
     delete m_pPlayerController;
 
     delete m_pResourceManager;
-
     delete m_pResourcePanel;
 
     delete m_pEventManager;
-
     delete m_pImGuiManager;
-
     delete m_pTextureManager;
 
     delete m_pTransformGizmo2D;
-
     delete m_Log;
 }
 
 void Game::Init()
 {
+    m_pComponentRegistry->Register(AIFollowComponent::GetStaticType(), &AIFollowComponent::Create);
+    m_pComponentRegistry->Register(DirectMovementComponent::GetStaticType(), &DirectMovementComponent::Create);
+    m_pComponentRegistry->Register(ExampleComponent::GetStaticType(), &ExampleComponent::Create);
+    m_pComponentRegistry->Register(PhysicsMovementComponent::GetStaticType(), &PhysicsMovementComponent::Create);
+
     // OpenGL Settings.
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -52,7 +59,8 @@ void Game::Init()
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
 
-    m_pFBO = new fw::FrameBufferObject(m_pFramework->GetWindowWidth(), m_pFramework->GetWindowHeight());
+    m_pFBO = new fw::FrameBufferObject(m_pFramework->GetWindowWidth() / 2, m_pFramework->GetWindowHeight() / 2);
+    m_pMousePickerFBO = new fw::FrameBufferObject(m_pFramework->GetWindowWidth() / 2, m_pFramework->GetWindowHeight() / 2);
 
     m_pEventManager = new fw::EventManager();
     m_pEventManager->RegisterEventListener(this, fw::InputEvent::GetStaticEventType());
@@ -62,9 +70,11 @@ void Game::Init()
     m_pEventManager->RegisterEventListener(m_pImGuiManager, fw::InputEvent::GetStaticEventType());
 
     m_pResourceManager = new fw::ResourceManager();
-    
+
     //Enable docking
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    m_pFileDialog = new ifd::FileDialog();
+    Editor_InitFileDialog();
 
     // This is just to read and write log files into Log.txt
     // which is handled in Log's constructor and destructor.
@@ -76,16 +86,17 @@ void Game::Init()
 
     // Load some Shaders.
     m_pResourceManager->AddShader("Basic", "Data/Shaders/Basic.vert", "Data/Shaders/Basic.frag");
+    m_pResourceManager->AddShader("Lighting", "Data/Shaders/Lighting.vert", "Data/Shaders/Lighting.frag");
     m_pResourceManager->AddShader("Water", "Data/Shaders/Water.vert", "Data/Shaders/Water.frag");
+    m_pResourceManager->AddShader("Color", "Data/Shaders/Basic.vert", "Data/Shaders/Color.frag");
 
     // Create some Meshes.
-    m_pResourceManager->AddMesh("Player", meshPrimType_Sprite, meshNumVerts_Sprite, meshAttribs_Sprite);
-    m_pResourceManager->AddMesh("DynamicMeshPlayer", new fw::Mesh());
+    m_pResourceManager->AddMesh("Sprite", meshPrimType_Sprite, meshNumVerts_Sprite, meshAttribs_Sprite);
     fw::Mesh* tempPlane = new fw::Mesh(vec2(10, 10), ivec2(40, 40));
     m_pResourceManager->AddMesh("Plane", tempPlane);
 
     fw::Mesh* pCube = new fw::Mesh();
-    pCube->CreateFromOBJ( "Data/Meshes/Cube.obj" );
+    pCube->CreateFromOBJ("Data/Meshes/Cube.obj");
     m_pResourceManager->AddMesh("Cube", pCube);
 
     // Load some textures... now handled by TextureManager automatically.
@@ -93,23 +104,26 @@ void Game::Init()
 
     // Create some Materials.
     m_pResourceManager->AddMaterial("Orange", new fw::Material(m_pResourceManager->GetShader("Basic"), m_pResourceManager->GetTexture("Orange"), fw::Color::White(), 1, 0));
-    m_pResourceManager->AddMaterial("Water", new fw::Material(m_pResourceManager->GetShader("Basic"), m_pResourceManager->GetTexture("Water"), fw::Color::White(), 1, 0));
+    m_pResourceManager->AddMaterial("Lit", new fw::Material(m_pResourceManager->GetShader("Lighting"), m_pResourceManager->GetTexture("Orange"), fw::Color::White(), 1, 0));
+    m_pResourceManager->AddMaterial("Water", new fw::Material(m_pResourceManager->GetShader("Water"), m_pResourceManager->GetTexture("Water"), fw::Color::White(), 1, 0));
     m_pResourceManager->AddMaterial("Green", new fw::Material(m_pResourceManager->GetShader("Basic"), m_pResourceManager->GetTexture("Green"), fw::Color::White(), 1, 0));
-    // Load our scene.
-    m_pScene = new GameScene(this);
-    m_pScene->Init();
 
-    m_pResourcePanel = new fw::ResourcesPanel(m_pResourceManager, m_pTextureManager,"Resource Panel", m_pScene);
-    //Add Tabs to the Resource Panel
-    m_pResourcePanel->AddResource("Materials",  fw::ResourceType::Materials,true,  ImVec4(0.3f, 0.6f, 0.4f, 1.0f));
-    m_pResourcePanel->AddResource("Textures",  fw::ResourceType::Textures,true,  ImVec4(0.7f, 0.4f, 1.0f, 1.0f));
-    m_pResourcePanel->AddResource("Shaders",   fw::ResourceType::Shaders,true,  ImVec4(0.9f, 0.7f, 0.5f, 1.0f));
-    m_pResourcePanel->AddResource("Meshes",    fw::ResourceType::Meshes,true, ImVec4(0.9f, 0.2f, 0.4f, 1.0f));
+    // Add Tabs to the Resource Panel.
+    m_pResourcePanel = new fw::ResourcesPanel(m_pResourceManager, m_pTextureManager, "Resource Panel", m_pScene);
+    m_pResourcePanel->AddResource("Materials", fw::ResourceType::Materials, true, ImVec4(0.3f, 0.6f, 0.4f, 1.0f));
+    m_pResourcePanel->AddResource("Textures", fw::ResourceType::Textures, true, ImVec4(0.7f, 0.4f, 1.0f, 1.0f));
+    m_pResourcePanel->AddResource("Shaders", fw::ResourceType::Shaders, true, ImVec4(0.9f, 0.7f, 0.5f, 1.0f));
+    m_pResourcePanel->AddResource("Meshes", fw::ResourceType::Meshes, true, ImVec4(0.9f, 0.2f, 0.4f, 1.0f));
 
     ImGui::LoadIniSettingsFromDisk("LayoutDefault.ini");
 
     m_pTransformGizmo2D = new fw::TransformGizmo2D(this);
     LOG(INFO, "Game Initialized...");
+
+    // Load a default scene.
+    m_pScene = new GameScene(this);
+    m_pScene->LoadFromFile("Data/Scenes", "Default.scene");
+    m_pScene->Init();
 }
 
 void Game::StartFrame(float deltaTime)
@@ -135,9 +149,11 @@ void Game::Update(float deltaTime)
     m_pScene->Update(deltaTime);
     m_pTransformGizmo2D->Update(m_pScene);
 
+    Editor_SaveDialog();
+    Editor_LoadDialog();
     Editor_SetupDocking();
     Editor_MainMenu();
-    
+
     // Displaying Texture Manager window
     if (m_pTextureManager->GetOnOffState())
     {
@@ -154,77 +170,249 @@ void Game::Update(float deltaTime)
     {
         Log::Update(&m_LogOpen);
     }
-
-    // Debug imgui stuff.
-    {
-        // Display framerate.
-        ImGui::Text("%0.2f", 1 / deltaTime);
-
-        if (ImGui::Checkbox("VSync", &m_VSyncEnabled))
-        {
-            wglSwapInterval(m_VSyncEnabled ? 1 : 0);
-        }
-
-        //ImGui::ShowDemoWindow();
-    }
 }
 
 void Game::Draw()
 {
+    //Draws the scene into a texture.
     m_pFBO->Bind();
-    glClearColor(0, 0, 0.2f, 1);
+    {
+        glViewport(0, 0, m_pFBO->GetRequestedWidth(), m_pFBO->GetRequestedHeight());
+        glClearColor(0, 0, 0.2f, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, m_pFBO->GetRequestedWidth(), m_pFBO->GetRequestedHeight());
-    m_pTransformGizmo2D->Draw();
-    m_pScene->Draw();
+        m_pTransformGizmo2D->Draw();
+        m_pScene->Draw();
+    }
     m_pFBO->Unbind();
 
-    glClearColor(0.141f, 0.149f, 0.219f, 0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, m_pFramework->GetWindowWidth(), m_pFramework->GetWindowHeight());
-
+    //Mouse Picker FBO.
+    m_pMousePickerFBO->Bind();
     {
-        ImGui::Begin("Game");
-        {
-            ImGui::BeginChild("Render");
-            GameRenderWindowPos = ImGui::GetWindowPos();
-            GameRenderwindowSize = ImGui::GetWindowSize();
-            ImTextureID tex_id = (void*)(intptr_t)m_pFBO->GetColorTextureHandle();        
-            ImVec2 size = ImVec2(GameRenderwindowSize.x, GameRenderwindowSize.y);
-        
-            ImVec2 uvTopLeft(0, m_pFBO->GetHeightRatio());
-            ImVec2 uvBottomRight(m_pFBO->GetWidthRatio(), 0);
-            ImGui::Image(tex_id, size, uvTopLeft, uvBottomRight);
-            ImGui::EndChild();
-        }
-        ImGui::End();
+        glViewport(0, 0, m_pMousePickerFBO->GetRequestedWidth(), m_pMousePickerFBO->GetRequestedHeight());
+        glClearColor(1, 1, 1, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        m_pScene->DrawMousePickingMeshes();
     }
-    
+    m_pMousePickerFBO->Unbind();
+
+    //Draws the back buffer.
+    {
+        glViewport(0, 0, m_pFramework->GetWindowWidth(), m_pFramework->GetWindowHeight());
+        glClearColor(0.141f, 0.149f, 0.219f, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        Editor_GameWindow();
+    }
+
+    //ImGui::Begin("Game");
+    //{
+    //    ImGui::BeginChild("Render");
+    //    GameRenderWindowPos = ImGui::GetWindowPos();
+    //    GameRenderwindowSize = ImGui::GetWindowSize();
+    //    ImTextureID tex_id = (void*)(intptr_t)m_pFBO->GetColorTextureHandle();        
+    //    ImVec2 size = ImVec2(GameRenderwindowSize.x, GameRenderwindowSize.y);
+
+    //    ImVec2 uvTopLeft(0, m_pFBO->GetHeightRatio());
+    //    ImVec2 uvBottomRight(m_pFBO->GetWidthRatio(), 0);
+    //    ImGui::Image(tex_id, size, uvTopLeft, uvBottomRight);
+    //    ImGui::EndChild();
+    //}
+    //ImGui::End();
+
     m_pScene->DrawObjectList();
     m_pScene->DrawImGuiInspector();
     m_pScene->DrawImguiDemoWindow();
 
+    //Selects object in the scene
+    MousePicker();
+
     m_pImGuiManager->EndFrame();
+}
+
+void Game::GetGameRenderWindowInfo(vec2* windowPos, vec2* windowSize)
+{
+    *windowSize = m_GameWindowSize;
+    *windowPos = m_GameWindowPosition;
+}
+
+void Game::MousePicker()
+{
+    int mouseX;
+    int mouseY;
+
+    m_pFramework->GetMouseCoordinates(&mouseX, &mouseY);
+
+    mouseX -= (int)m_GameWindowPosition.x;
+    mouseY -= (int)m_GameWindowPosition.y;
+
+    //Flip the Y coordinate
+    mouseY = m_pFBO->GetRequestedHeight() - mouseY;
+
+    if (mouseX >= 0 && mouseX <= (int)m_pFBO->GetRequestedWidth() &&
+        mouseY >= 0 && mouseY <= (int)m_pFBO->GetRequestedHeight())
+    {
+        // Was mouse just pressed.
+        if (!m_pFramework->WasMouseButtonDown(0) && m_pFramework->IsMouseButtonDown(0))
+        {
+            unsigned char pixels[4];
+
+            m_pMousePickerFBO->Bind();
+            glReadPixels(mouseX, mouseY, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixels);
+            m_pMousePickerFBO->Unbind();
+
+            int selectedObject = pixels[0];
+
+            m_pScene->SelectObject(selectedObject);
+
+            //ImGui::Text("Object: %d", selectedObject);
+        }
+    }
+}
+
+void Game::Editor_InitFileDialog()
+{
+    m_pFileDialog->CreateTexture = [](uint8_t* data, int w, int h, char fmt) -> void*
+    {
+        GLuint tex;
+
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, (fmt == 0) ? GL_BGRA : GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        return (void*)(uintptr_t)tex;
+    };
+
+    m_pFileDialog->DeleteTexture = [](void* tex) {
+        GLuint texID = (GLuint)(uintptr_t)tex;
+        glDeleteTextures(1, &texID);
+    };
+}
+
+void Game::Editor_SaveDialog()
+{
+    if (m_SaveDialogVisible == false)
+        return;
+
+    m_pFileDialog->Save("SaveSceneDialog", "Save a Scene", "Scene file (*.scene){.scene},.*", "Data/Scenes");
+
+    if (m_pFileDialog->IsDone("SaveSceneDialog"))
+    {
+        m_SaveDialogVisible = false;
+
+        if (m_pFileDialog->HasResult())
+        {
+            std::string path = m_pFileDialog->GetResult().parent_path().u8string();
+            std::string filename = m_pFileDialog->GetResult().filename().u8string();
+            m_pScene->SetPath(path);
+            m_pScene->SetName(filename);
+            m_pScene->SaveToFile();
+        }
+        m_pFileDialog->Close();
+    }
+}
+
+void Game::Editor_LoadDialog()
+{
+    if (m_LoadDialogVisible == false)
+        return;
+
+    m_pFileDialog->Open("LoadSceneDialog", "Load a Scene", "Scene file (*.scene){.scene},.*", false, "Data/Scenes");
+
+    if (m_pFileDialog->IsDone("LoadSceneDialog"))
+    {
+        m_LoadDialogVisible = false;
+
+        std::string filename;
+        std::string path;
+
+        if (m_pFileDialog->HasResult())
+        {
+            path = m_pFileDialog->GetResult().parent_path().u8string();
+            filename = m_pFileDialog->GetResult().filename().u8string();
+
+            delete m_pScene;
+            m_pScene = new GameScene(this);
+            m_pScene->Init();
+            m_pScene->LoadFromFile(path, filename);
+        }
+
+        m_pFileDialog->Close();
+    }
+}
+
+void Game::Editor_GameWindow()
+{
+    ImGui::Begin("Game");
+    {
+        ImVec2 contentRegionMin = ImGui::GetWindowContentRegionMin();
+        ImVec2 contentRegionMax = ImGui::GetWindowContentRegionMax();
+
+        ImVec2 windowPosition = ImGui::GetWindowPos();
+        m_GameWindowPosition = vec2(windowPosition.x + contentRegionMin.x, windowPosition.y + contentRegionMin.y);
+
+        m_GameWindowSize = vec2(contentRegionMax.x - contentRegionMin.x,
+                                contentRegionMax.y - contentRegionMin.y);
+
+        if (m_GameWindowSize.x != m_pFBO->GetRequestedWidth() ||
+            m_GameWindowSize.y != m_pFBO->GetRequestedHeight())
+        {
+            m_pFBO->Resize((int)m_GameWindowSize.x, (int)m_GameWindowSize.y);
+            m_pMousePickerFBO->Resize((int)m_GameWindowSize.x, (int)m_GameWindowSize.y);
+        }
+
+        ImTextureID tex_id = (void*)(intptr_t)m_pFBO->GetColorTextureHandle();
+
+        ImVec2 size = ImVec2((float)m_pFBO->GetRequestedWidth(), (float)m_pFBO->GetRequestedHeight());
+        ImVec2 uvTopLeft(0, m_pFBO->GetHeightRatio());
+        ImVec2 uvBottomRight(m_pFBO->GetWidthRatio(), 0);
+        ImGui::Image(tex_id, size, uvTopLeft, uvBottomRight);
+    }
+    ImGui::End();
 }
 
 void Game::Editor_MainMenu()
 {
-    fw::Scene* pNewScene = nullptr;
+    bool newLoad = false;
+    bool needNewScene = false;
     ImGui::BeginMainMenuBar();
 
     if (ImGui::BeginMenu("File"))
     {
         if (ImGui::MenuItem("New Scene"))
         {
-            pNewScene = new GameScene(this);
+            needNewScene = true;
         }
 
         ImGui::Separator();
 
         if (ImGui::MenuItem("Save"))
         {
-            m_pScene->Save("Data/SaveFiles/test.scene");
+            if (m_pScene->GetPath() == "" || m_pScene->GetName() == "")
+            {
+                m_SaveDialogVisible = true;
+            }
+            else
+            {
+                m_pScene->SaveToFile();
+            }
+        }
+
+        if (ImGui::MenuItem("Save As"))
+        {
+            m_SaveDialogVisible = true;
+        }
+
+        if (ImGui::MenuItem("Load"))
+        {
+            m_LoadDialogVisible = true;
         }
 
         ImGui::Separator();
@@ -255,19 +443,21 @@ void Game::Editor_MainMenu()
         if (ImGui::MenuItem("Texture Manager")) { m_pTextureManager->ToggleOnOff(); }
         if (ImGui::MenuItem("Object List")) { m_pScene->ToggleObjectList(); }
         if (ImGui::MenuItem("Object Inspector")) { m_pScene->ToggleObjectDetails(); }
-        if (ImGui::MenuItem("Imgui Helper")) { m_pScene->ToggleImguiDemo(); }
-        
+        if (ImGui::MenuItem("ImGui Helper")) { m_pScene->ToggleImguiDemo(); }
+
         ImGui::EndMenu();
     }
 
     ImGui::EndMainMenuBar();
 
-    if (pNewScene != nullptr)
+    if (needNewScene)
     {
         delete m_pScene;
-        m_pScene = pNewScene;
-        m_pScene->Init();
-        m_pScene->Update(0);
+        m_pScene = new GameScene(this);
+        if (!newLoad)
+        {
+            m_pScene->Init();
+        }
     }
 }
 

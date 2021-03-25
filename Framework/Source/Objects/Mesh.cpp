@@ -1,11 +1,13 @@
 #include "FrameworkPCH.h"
 
 #include "Mesh.h"
-#include "Objects/Camera.h"
-#include "Objects/Texture.h"
-#include "Utility/ShaderProgram.h"
-#include "Utility/Helpers.h"
+#include "Components/CameraComponent.h"
+#include "Components/TransformComponent.h"
 #include "Math/MyMatrix.h"
+#include "Objects/Material.h"
+#include "Objects/Texture.h"
+#include "Utility/Helpers.h"
+#include "Utility/ShaderProgram.h"
 
 namespace fw {
 
@@ -35,139 +37,86 @@ Mesh::~Mesh()
 
 void Mesh::Start(int primitiveType)
 {
-    if (!m_Editable)
-    {
-        m_Verts.clear();
+    assert(m_Editable == false);
 
-        m_PrimitiveType = primitiveType;
+    m_Verts.clear();
 
-        m_Editable = true;
-        //LOG(INFO, "This Mesh is now editable");
-    }
-    else
-    {
-        //LOG(INFO, "This Mesh is already editable");
-    }
+    m_PrimitiveType = primitiveType;
+
+    m_Editable = true;
 }
 
 void Mesh::AddVertex(const VertexFormat nVert)
 {
-    if (m_Editable)
-    {
-        m_Verts.push_back(nVert);
+    assert(m_Editable);
 
-        //LOG(INFO, "Vertex Added");
-    }
-    else
-    {
-        //LOG(INFO, "This Mesh isn't editable");
-    }
+    m_Verts.push_back(nVert);
 }
 
 void Mesh::AddVertex(const vec3 pos, const vec2 uv)
 {
-    if (m_Editable)
-    {
-        m_Verts.push_back(VertexFormat(pos.x, pos.y, pos.z, uv.x, uv.y));
+    assert(m_Editable);
 
-        //LOG(INFO, "Vertex Added");
-    }
-    else
-    {
-        //LOG(INFO, "This Mesh isn't editable");
-    }
+    m_Verts.push_back(VertexFormat(pos.x, pos.y, pos.z, uv.x, uv.y));
+}
+
+void Mesh::AddVertex(const vec3 pos, unsigned char r, unsigned char g, unsigned char b, unsigned char a)
+{
+    m_Verts.push_back(VertexFormat(pos.x, pos.y, pos.z, r, g, b, a));
 }
 
 void Mesh::AddVertex(const vec3 pos, const float u, const float v)
 {
-    if (m_Editable)
-    {
-        m_Verts.push_back(VertexFormat(pos.x, pos.y, pos.z, u, v));
+    assert(m_Editable);
 
-        //LOG(INFO, "Vertex Added");
-    }
-    else
-    {
-        //LOG(INFO, "This Mesh isn't editable");
-    }
+    m_Verts.push_back(VertexFormat(pos.x, pos.y, pos.z, u, v));
 }
 
 void Mesh::AddVertex(const float x, const float y, const float z, const float u, const float v)
 {
-    if (m_Editable)
-    {
-        m_Verts.push_back(VertexFormat(x, y, z, u, v));
+    assert(m_Editable);
 
-        //LOG(INFO, "Vertex Added");
-    }
-    else
-    {
-        //LOG(INFO, "This Mesh isn't editable");
-    }
+    m_Verts.push_back(VertexFormat(x, y, z, u, v));
 }
 
 void Mesh::AddVertex(const float x, const float y, const float z, const vec2 uv)
 {
-    if (m_Editable)
-    {
-        m_Verts.push_back(VertexFormat(x, y, z, uv.x, uv.y));
+    assert(m_Editable);
 
-        //LOG(INFO, "Vertex Added");
-    }
-    else
-    {
-        //LOG(INFO, "This Mesh isn't editable");
-    }
+    m_Verts.push_back(VertexFormat(x, y, z, uv.x, uv.y));
 }
 
 void Mesh::AddSprite(vec3 pos)
 {
-    if (m_Editable)
-    {
-        if (m_PrimitiveType != GL_TRIANGLES)
-        {
-            m_PrimitiveType = GL_TRIANGLES;
-        }
+    assert(m_Editable);
+    assert(m_PrimitiveType == GL_TRIANGLES);
 
-        float halfSize = 0.2f;
-        m_Verts.push_back(VertexFormat(pos.x - halfSize, pos.y - halfSize, pos.z, 0, 0)); // bl
-        m_Verts.push_back(VertexFormat(pos.x - halfSize, pos.y + halfSize, pos.z, 0, 1)); // tl
-        m_Verts.push_back(VertexFormat(pos.x + halfSize, pos.y + halfSize, pos.z, 1, 1)); // tr
+    float halfSize = 0.2f;
+    m_Verts.push_back(VertexFormat(pos.x - halfSize, pos.y - halfSize, pos.z, 0, 0)); // bl
+    m_Verts.push_back(VertexFormat(pos.x - halfSize, pos.y + halfSize, pos.z, 0, 1)); // tl
+    m_Verts.push_back(VertexFormat(pos.x + halfSize, pos.y + halfSize, pos.z, 1, 1)); // tr
 
-        m_Verts.push_back(VertexFormat(pos.x - halfSize, pos.y - halfSize, pos.z, 0, 0)); // bl
-        m_Verts.push_back(VertexFormat(pos.x + halfSize, pos.y + halfSize, pos.z, 1, 1)); // tr
-        m_Verts.push_back(VertexFormat(pos.x + halfSize, pos.y - halfSize, pos.z, 1, 0)); // br
-
-        //LOG(INFO, "Sprite Mesh Added");
-    }
-    else
-    {
-        //LOG(INFO, "This Mesh isn't editable");
-    }
+    m_Verts.push_back(VertexFormat(pos.x - halfSize, pos.y - halfSize, pos.z, 0, 0)); // bl
+    m_Verts.push_back(VertexFormat(pos.x + halfSize, pos.y + halfSize, pos.z, 1, 1)); // tr
+    m_Verts.push_back(VertexFormat(pos.x + halfSize, pos.y - halfSize, pos.z, 1, 0)); // br
 }
 
 void Mesh::End()
 {
-    if (m_Editable)
-    {
-        glDeleteBuffers(1, &m_VBO);
+    assert(m_Editable);
 
-        glGenBuffers(1, &m_VBO); // m_VBO is a GLuint.
+    m_Editable = false;
 
-        glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+    if (m_Verts.size() == 0)
+        return;
 
-        m_NumVertices = (int)m_Verts.size();
+    glDeleteBuffers(1, &m_VBO);
+    glGenBuffers(1, &m_VBO);
 
-        glBufferData(GL_ARRAY_BUFFER, sizeof(VertexFormat) * m_NumVertices, &m_Verts[0], GL_STATIC_DRAW);
-        //CreateShape(GL_TRIANGLES, (int)m_Verts.size(), &m_Verts[0]);
+    m_NumVertices = (int)m_Verts.size();
 
-        m_Editable = false;
-        //LOG(INFO, "This Mesh is now Complete");
-    }
-    else
-    {
-        //LOG(INFO, "This Mesh has already Complete");
-    }
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexFormat) * m_NumVertices, &m_Verts[0], GL_STATIC_DRAW);
 }
 
 void Mesh::CreateShape(int aPrimitiveType, int aNumVertices, const VertexFormat* pVertices)
@@ -362,9 +311,9 @@ void Mesh::CreateFromOBJ(const char* filename)
             ivec3 v1, v2, v3;
             sscanf_s(line, "f %d/%d/%d %d/%d/%d %d/%d/%d", &v1.x, &v1.y, &v1.z, &v2.x, &v2.y, &v2.z, &v3.x, &v3.y, &v3.z);
 
-            verts.push_back(VertexFormat(positions[v1.x - 1], uvs[v1.y - 1]));
-            verts.push_back(VertexFormat(positions[v2.x - 1], uvs[v2.y - 1]));
-            verts.push_back(VertexFormat(positions[v3.x - 1], uvs[v3.y - 1]));
+            verts.push_back(VertexFormat(positions[v1.x - 1], uvs[v1.y - 1], normals[v1.z - 1]));
+            verts.push_back(VertexFormat(positions[v2.x - 1], uvs[v2.y - 1], normals[v2.z - 1]));
+            verts.push_back(VertexFormat(positions[v3.x - 1], uvs[v3.y - 1], normals[v3.z - 1]));
         }
 
         line = strtok_s(0, "\n", &next_token);
@@ -405,12 +354,22 @@ void Mesh::SetUniform1i(ShaderProgram* pShader, char* name, int value)
     glUniform1i(loc, value);
 }
 
-void Mesh::Draw(Camera* pCamera, vec3 pos, vec3 rot, vec3 scale, Material* pMaterial)
+void Mesh::Draw(CameraComponent* pCamera, TransformComponent* pTransform, Material* pMaterial)
 {
-    Draw(pCamera, pos, rot, scale, pMaterial->GetShader(), pMaterial->GetTexture(), pMaterial->GetColor(), pMaterial->GetUVScale(), pMaterial->GetUVOffset());
+    Draw(pCamera, pTransform->GetWorldTransform(), pMaterial->GetShader(), pMaterial->GetTexture(), pMaterial->GetColor(), pMaterial->GetUVScale(), pMaterial->GetUVOffset());
 }
 
-void Mesh::Draw(Camera* pCamera, vec3 pos, vec3 rot, vec3 scale, ShaderProgram* pShader, Texture* pTexture, Color color, vec2 UVScale, vec2 UVOffset)
+void Mesh::Draw(CameraComponent* pCamera, TransformComponent* pTransform, ShaderProgram* pShader, Texture* pTexture, Color color, vec2 UVScale, vec2 UVOffset)
+{
+    Draw(pCamera, pTransform->GetWorldTransform(), pShader, pTexture, color, UVScale, UVOffset);
+}
+
+void Mesh::Draw(CameraComponent* pCamera, MyMatrix* pWorldMatrix, Material* pMaterial)
+{
+    Draw(pCamera, pWorldMatrix, pMaterial->GetShader(), pMaterial->GetTexture(), pMaterial->GetColor(), pMaterial->GetUVScale(), pMaterial->GetUVOffset());
+}
+
+void Mesh::Draw(CameraComponent* pCamera, MyMatrix* pWorldMatrix, ShaderProgram* pShader, Texture* pTexture, Color color, vec2 UVScale, vec2 UVOffset)
 {
     glUseProgram(pShader->GetProgram());
 
@@ -425,14 +384,28 @@ void Mesh::Draw(Camera* pCamera, vec3 pos, vec3 rot, vec3 scale, ShaderProgram* 
     if (locPosition != -1)
     {
         glEnableVertexAttribArray(locPosition);
-        glVertexAttribPointer(locPosition, 3, GL_FLOAT, GL_FALSE, 20, (void*)0);
+        glVertexAttribPointer(locPosition, 3, GL_FLOAT, GL_FALSE, sizeof(VertexFormat), (void*)offsetof(VertexFormat, pos));
+    }
+
+    GLint locColor = glGetAttribLocation(pShader->GetProgram(), "a_Color");
+    if (locColor != -1)
+    {
+        glEnableVertexAttribArray(locColor);
+        glVertexAttribPointer(locColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(VertexFormat), (void*)offsetof(VertexFormat, color));
     }
 
     GLint locUVCoord = glGetAttribLocation(pShader->GetProgram(), "a_UVCoord");
     if (locUVCoord != -1)
     {
         glEnableVertexAttribArray(locUVCoord);
-        glVertexAttribPointer(locUVCoord, 2, GL_FLOAT, GL_FALSE, 20, (void*)12);
+        glVertexAttribPointer(locUVCoord, 2, GL_FLOAT, GL_FALSE, sizeof(VertexFormat), (void*)offsetof(VertexFormat, uv));
+    }
+
+    GLint locNormal = glGetAttribLocation(pShader->GetProgram(), "a_Normal");
+    if (locNormal != -1)
+    {
+        glEnableVertexAttribArray(locNormal);
+        glVertexAttribPointer(locNormal, 3, GL_FLOAT, GL_FALSE, sizeof(VertexFormat), (void*)offsetof(VertexFormat, normal));
     }
 
     // Setup our uniforms.
@@ -444,35 +417,32 @@ void Mesh::Draw(Camera* pCamera, vec3 pos, vec3 rot, vec3 scale, ShaderProgram* 
         SetUniform2f(pShader, "u_UVOffset", UVOffset);
 
         SetUniform3f(pShader, "u_CameraPosition", pCamera->GetPosition());
-        SetUniform2f(pShader, "u_ProjectionScale", pCamera->GetProjectionScale());
 
         // Transforms.
-        int loc = glGetUniformLocation(pShader->GetProgram(), "u_WorldTransform");
-        MyMatrix mat;
-        mat.CreateSRT(scale, rot, pos);
-        glUniformMatrix4fv(loc, 1, false, &mat.m11);
+        int locWorld = glGetUniformLocation(pShader->GetProgram(), "u_WorldTransform");
+        glUniformMatrix4fv(locWorld, 1, false, &pWorldMatrix->m11);
+
+        int locRotMatrix = glGetUniformLocation(pShader->GetProgram(), "u_RotationMatrix");
+        vec3 rot = pWorldMatrix->GetEulerAngles();
+        MyMatrix rotation;
+        rotation.CreateRotation( rot );
+        glUniformMatrix4fv(locRotMatrix, 1, false, &rotation.m11);        
 
         int locView = glGetUniformLocation(pShader->GetProgram(), "u_ViewTransform");
-        const MyMatrix& viewMat = pCamera->GetViewTransform();
-        glUniformMatrix4fv(locView, 1, false, &viewMat.m11);
+        glUniformMatrix4fv(locView, 1, false, &pCamera->GetViewMatrix()->m11);
 
         int locProj = glGetUniformLocation(pShader->GetProgram(), "u_ProjectionMatrix");
         MyMatrix projMat;
-        projMat.CreateOrtho(-pCamera->GetProjectionScale().x, pCamera->GetProjectionScale().x,
-                            -pCamera->GetProjectionScale().y, pCamera->GetProjectionScale().y,
-                            -1000, 1000);
-        //projMat.CreatePerspectiveVFoV(45.0f, 1280 / 720.0f, 0.01f, 1000.0f);
-        glUniformMatrix4fv(locProj, 1, false, &projMat.m11);
+
+        // Check the CameraComponent's ViewType and determine what kind of projection matrix to create.
+        glUniformMatrix4fv(locProj, 1, false, &pCamera->GetProjectionMatrix()->m11);
 
         if (pTexture != nullptr)
         {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, pTexture->GetHandle());
             SetUniform1i(pShader, "u_Texture", 0);
-            SetUniform1i(pShader, "u_HasTexture",1);
         }
-        else
-            SetUniform1i(pShader, "u_HasTexture",0);
     }
 
     // Draw the primitive.
@@ -485,13 +455,24 @@ void Mesh::Draw(Camera* pCamera, vec3 pos, vec3 rot, vec3 scale, ShaderProgram* 
         glDrawElements(m_PrimitiveType, m_NumIndices, GL_UNSIGNED_INT, (void*)0);
     }
 
-    if( locPosition != -1 )
+    if (locPosition != -1)
     {
-        glDisableVertexAttribArray( locPosition );
+        glDisableVertexAttribArray(locPosition);
     }
-    if( locUVCoord != -1 )
+
+    if (locColor != -1)
     {
-        glDisableVertexAttribArray( locUVCoord );
+        glDisableVertexAttribArray(locColor);
+    }
+
+    if (locUVCoord != -1)
+    {
+        glDisableVertexAttribArray(locUVCoord);
+    }
+
+    if (locNormal != -1)
+    {
+        glDisableVertexAttribArray(locNormal);
     }
 }
 

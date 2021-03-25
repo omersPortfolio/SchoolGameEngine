@@ -1,6 +1,7 @@
-#pragma once
 #include "FrameworkPCH.h"
+
 #include "CollisionComponent.h"
+#include "Components/TransformComponent.h"
 #include "Objects/GameObject.h"
 #include "Scene/Scene.h"
 #include "Math/Vector.h"
@@ -52,8 +53,7 @@ void CollisionComponent::Update(float deltaTime)
 
 void CollisionComponent::Save(WriterType& writer)
 {
-    writer.Key("Name");
-    writer.String("CollisionComponent");
+    Component::Save(writer);
 
     JSONSaveVec3(writer, "Offset", m_Offset);
 
@@ -71,45 +71,37 @@ void CollisionComponent::Save(WriterType& writer)
 
 void CollisionComponent::Load(rapidjson::Value& component)
 {
-    if (component.HasMember("Name"))
+    if (component.HasMember("Offset"))
     {
-        std::string componentName = component["Name"].GetString();
+        m_Offset.x = component["Offset"].GetArray()[0].GetFloat();
+        m_Offset.y = component["Offset"].GetArray()[1].GetFloat();
+        m_Offset.z = component["Offset"].GetArray()[2].GetFloat();
+    }
 
-        if (componentName == "CollisionComponent")
-        {
-            if (component.HasMember("Offset"))
-            {
-                m_Offset.x = component["Offset"].GetArray()[0].GetFloat();
-                m_Offset.y = component["Offset"].GetArray()[1].GetFloat();
-                m_Offset.z = component["Offset"].GetArray()[2].GetFloat();
-            }
+    if (component.HasMember("ShapeType"))
+    {
+        m_ShapeType = (ShapeType)component["ShapeType"].GetInt();
+    }
 
-            if (component.HasMember("ShapeType"))
-            {
-                m_ShapeType = (ShapeType)component["ShapeType"].GetInt();
-            }
+    if (component.HasMember("BodyType"))
+    {
+        m_BodyType = (BodyType)component["BodyType"].GetInt();
+    }
 
-            if (component.HasMember("BodyType"))
-            {
-                m_BodyType = (BodyType)component["BodyType"].GetInt();
-            }
+    if (component.HasMember("Density"))
+    {
+        m_Density = component["Density"].GetFloat();
+    }
 
-            if (component.HasMember("Density"))
-            {
-                m_Density = component["Density"].GetFloat();
-            }
-
-            if (component.HasMember("Dimensions"))
-            {
-                m_Dimensions.x = component["Dimensions"].GetArray()[0].GetFloat();
-                m_Dimensions.y = component["Dimensions"].GetArray()[1].GetFloat();
-                m_Dimensions.z = component["Dimensions"].GetArray()[2].GetFloat();
-            }
-        }
+    if (component.HasMember("Dimensions"))
+    {
+        m_Dimensions.x = component["Dimensions"].GetArray()[0].GetFloat();
+        m_Dimensions.y = component["Dimensions"].GetArray()[1].GetFloat();
+        m_Dimensions.z = component["Dimensions"].GetArray()[2].GetFloat();
     }
 }
 
-void CollisionComponent::ImGuiInspector()
+void CollisionComponent::AddToInspector()
 {
     ImGui::Separator();
 
@@ -139,19 +131,20 @@ void CollisionComponent::CreatePhysicsBody()
 {
     if (m_pGameObject != nullptr)
     {
-        vec3 position = m_pGameObject->GetPosition() + m_Offset;
+        vec3 position = m_pGameObject->GetTransform()->GetPosition() + m_Offset;
+        vec3 scale = m_pGameObject->GetTransform()->GetScale();
 
         switch (m_ShapeType)
         {
         case ShapeType::Circle:
             m_pPhysicsBody = m_pGameObject->GetScene()->GetWorld()->CreateBody(position, m_BodyType, true);
-            m_pPhysicsBody->CreateCircle(m_Dimensions[0]);
+            m_pPhysicsBody->CreateCircle(scale.x);
             m_pPhysicsBody->SetDensity(m_Density);
             break;
 
         case ShapeType::Box:
             m_pPhysicsBody = m_pGameObject->GetScene()->GetWorld()->CreateBody(position, m_BodyType, true);
-            m_pPhysicsBody->CreateBox(m_Dimensions[0], m_Dimensions[1]);
+            m_pPhysicsBody->CreateBox(scale.x, scale.y);
             m_pPhysicsBody->SetDensity(m_Density);
             break;
         }
@@ -180,7 +173,7 @@ void CollisionComponent::SetPositionPhysicsBody()
 {
     if (m_pPhysicsBody && m_pGameObject)
     {
-        vec3 position = m_pGameObject->GetPosition() + m_Offset;
+        vec3 position = m_pGameObject->GetTransform()->GetPosition() + m_Offset;
         m_pPhysicsBody->SetPosition(position);
     }
 }
@@ -190,7 +183,10 @@ void CollisionComponent::SetPositionGameObject()
     if (m_pPhysicsBody && m_pGameObject)
     {
         vec3 position = m_pPhysicsBody->GetPosition() - m_Offset;
-        m_pGameObject->SetPosition(position.XY());
+        m_pGameObject->GetTransform()->SetPosition(position.XY());
+
+        vec3 rotation = m_pPhysicsBody->GetRotation();
+        m_pGameObject->GetTransform()->SetRotation( rotation );
     }
 }
 

@@ -21,6 +21,8 @@ public:
     void UnregisterEventListener(EventListener* pListener, std::string eventType);
     void UnregisterEventListenerCompletely(EventListener* pListener);
 
+    bool AreAnyListenersRegistered();
+
 protected:
     std::queue<Event*> m_EventQueue;
     std::map<std::string, std::vector<EventListener*>> m_EventListeners;

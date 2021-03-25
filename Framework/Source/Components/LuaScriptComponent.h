@@ -19,6 +19,7 @@ public:
 
     static const char* GetStaticType() { return "LuaScriptComponent"; }
     virtual const char* GetType() override { return GetStaticType(); }
+    static Component* Create() { return new LuaScriptComponent(); }
 
     virtual void OnEvent(Event* pEvent);
 

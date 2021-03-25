@@ -358,21 +358,21 @@ vec3 MyMatrix::GetEulerAngles()
         float x = PI / 2;
         float y = atan2f(m21, m11);
         float z = 0.0f;
-        return vec3(x, y, z);
+        return vec3(x, y, z) * 180.0f / PI;
     }
     else if (m32 < -1.0f + FEQUALEPSILON) // Not a unique solution: thetaZ + thetaY = atan2( -m21, m11 )
     {
         float x = -PI / 2;
         float y = -atan2f(m21, m11);
         float z = 0.0f;
-        return vec3(x, y, z);
+        return vec3(x, y, z) * 180.0f / PI;
     }
     else
     {
         float x = asinf(m32);
         float y = atan2f(-m31, m33);
         float z = atan2f(-m12, m22);
-        return vec3(x, y, z);
+        return vec3(x, y, z) * 180.0f / PI;
     }
 }
 
